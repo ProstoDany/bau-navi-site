@@ -15,6 +15,7 @@ connections = []
 
 io.on('connection', (socket) => {
     console.log("Success connection")
+    console.log("Test git")
     connections.push(socket)
 
     socket.on('disconnect', (data) => {
