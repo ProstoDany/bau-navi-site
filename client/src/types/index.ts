@@ -14,10 +14,11 @@ export interface BuildingModel {
 }
 
 export interface Floor {
-    workers: Worker[];
+    //? floorHeight: number; 
 }
 
 export interface Worker {
     id: IDType;
-    tile: Object3D // tile is an area where worker stands
+    tile: Object3D; // tile is an area where worker stands
+    floor: number;
 }
