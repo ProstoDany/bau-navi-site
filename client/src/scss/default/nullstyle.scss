@@ -1,0 +1,43 @@
+html {
+    font-size: $pageFontSize;
+    font-family: $contentFont;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: $titleFont;
+    font-size: 1rem;
+}
+
+button {
+    cursor: pointer;
+}
+
+a {
+    text-decoration: none;
+    color: #000;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body, #root, .wrapper {
+    min-height: 100vh;
+}
+
+.wrapper {
+    display: flex;
+    flex-direction: column;
+}
+
+.main {
+    flex-grow: 1;
+}
+
+.container {
+    max-width: $containerWidth;
+    margin: 0 auto;
+    padding: 1rem;
+}
