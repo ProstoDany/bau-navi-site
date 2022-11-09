@@ -16,7 +16,7 @@ const initialState: ModelInitialState = {
             {},
             {},
         ],
-        shape: [[-3, 3], [3, 3], [3, -3], [-3, -3]]
+        shape: [[0, 0], [0, 6], [6, 6], [6, 0]]
     },
     selectedFloor: null,
     workers: []

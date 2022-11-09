@@ -3,27 +3,27 @@ import * as THREE from 'three'
 import { useTypedSelector } from '../hooks/redux';
 import {ConvexGeometry} from 'three/examples/jsm/geometries/ConvexGeometry'
 import { Coordinates2D, Coordinates3D } from '../types';
-import { getDistance } from '../helpers/getDistance';
 import { camera, renderer, scene } from '../three';
 
 const ModelPage = () => {
   const modelRef = useRef<HTMLDivElement>(null);
   const {floorHeight, floors, shape} = useTypedSelector(state => state.buildingModel.model)
-  
-  useEffect(() => {
-    if(!modelRef.current) return; 
-    modelRef.current.appendChild(renderer.domElement)
 
-    let shapePointsDistancesFromCenter: number[] = shape.map(point => getDistance([0, 0], point));
+  useEffect(() => {
+    if(!modelRef.current || modelRef.current.children.length >= 1) return; 
     
+    // array of floors with walls
+    const walls: (THREE.Object3D[])[] = [];
+
+    const raycaster = new THREE.Raycaster()
+    const mousePosition = new THREE.Vector2();
+
     // ground creation
     const groundGeometry = new THREE.PlaneGeometry(100, 100);
     const groundMaterial = new THREE.MeshBasicMaterial({ color: 'gray', side: THREE.DoubleSide })
     const ground = new THREE.Mesh(groundGeometry, groundMaterial)
     ground.rotation.x = -0.5 * Math.PI
-    ground.position.y = -0.001
-    scene.add(ground)
-    
+    ground.position.y = -0.1
     
     for (let floorNumber = 0; floorNumber < floors.length; floorNumber++) {
       const floor = createFloor(floorNumber);
@@ -32,53 +32,56 @@ const ModelPage = () => {
     }
     
     function createFloor(floorNumber: number) {
-      const floor = new THREE.Object3D(); 
+      const floor = new THREE.Group(); 
       
       floor.position.y = floorNumber * floorHeight;
       
       for (let wallNumber = 1; wallNumber <= shape.length; wallNumber++) {
-        const wall = createWall(wallNumber);
+        const wall = createWall(wallNumber, floorNumber);
         
         floor.add(wall)
       }
       
-      const floorSeparatorGeometry = new THREE.TorusGeometry(Math.max(...shapePointsDistancesFromCenter) + 1, 0.1, 20, 40)
-      const floorSeparatorMaterial = new THREE.MeshBasicMaterial({ color: 0x999999 });
-      const floorSeparator = new THREE.Mesh(floorSeparatorGeometry, floorSeparatorMaterial);
       
-      floorSeparator.position.y = floorHeight / 3;
-      floorSeparator.rotation.x = -0.5 * Math.PI
-
-      floor.add(floorSeparator)
-
-      if (floorNumber === 0) {
-        const ground = createCeiling();
-        floor.add(ground)
+      if (floorNumber === floors.length - 1) {
+        const ceiling = createFloorGround(floorNumber, false);
+        ceiling.position.y = floorHeight
+        floor.add(ceiling)
       } 
       
-      const ceiling = createCeiling()
-      ceiling.position.y = floorHeight
-      floor.add(ceiling)
-
+      const floorGround = createFloorGround(floorNumber, true)
+      floor.add(floorGround)
+      floor.name = 'floor'
+      
       return floor;
     }
 
-    function createCeiling() {
+    window.addEventListener('mousemove', (event) => {
+      mousePosition.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+      mousePosition.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+    })
+    
+    function createFloorGround(floorNumber: number, createGrid: boolean) {
       const verticies = shape.map(coordinates => {
         // multiplicate second coordinate by -1 because shape of floor ceiling is reversed by z axis
         return new THREE.Vector2(coordinates[0] , coordinates[1] * -1)
       })
-
-      const ceilingShape = new THREE.Shape(verticies)
-      const ceilingGeometry = new THREE.ShapeGeometry(ceilingShape)
-      const ceilingMaterial = new THREE.MeshBasicMaterial({color: 0xffffff, side: THREE.DoubleSide})
-      const ceiling = new THREE.Mesh(ceilingGeometry, ceilingMaterial);
-
-      ceiling.rotation.x = -0.5 * Math.PI
-      return ceiling
+      
+      const groundShape = new THREE.Shape(verticies)
+      const groundGeometry = new THREE.ShapeGeometry(groundShape)
+      const groundMaterial = new THREE.MeshBasicMaterial({color: 0xffffff, side: THREE.DoubleSide })
+      const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+      
+      if (createGrid) {
+        
+      }
+      
+      ground.name = 'floorGround ' + floorNumber
+      ground.rotation.x = -0.5 * Math.PI
+      return ground
     }
     
-    function createWall(wallNumber: number) {  
+    function createWall(wallNumber: number, floorNumber: number) {  
       let verticies = []
       
       // wall seems to be a rectangle
@@ -87,7 +90,7 @@ const ModelPage = () => {
         let coordinates: Coordinates3D;
         // first coordin
         let wallXZPlanePoints: [Coordinates2D, Coordinates2D];
-
+        
         if (shape.length === wallNumber) {
           wallXZPlanePoints = [shape[wallNumber - 1], shape[0]]
         } else {
@@ -106,32 +109,74 @@ const ModelPage = () => {
         else if (wallCorner === 2) {
           coordinates = [wallXZPlanePoints[1][0], floorHeight, wallXZPlanePoints[1][1]]
         }
-
+        
         // bottom right corner
         else if (wallCorner === 3) {
           coordinates = [wallXZPlanePoints[1][0], 0, wallXZPlanePoints[1][1]]
         } 
-
+        
         else {
           coordinates = [0, 0, 0]
         }
         verticies.push(new THREE.Vector3(...coordinates))
       }
-
+      
       const wallGeometry = new ConvexGeometry(verticies)
-      const wallMaterial = new THREE.MeshBasicMaterial({ color: 0xcccccc, side: THREE.DoubleSide})
+      const wallMaterial = new THREE.MeshBasicMaterial({ color: 0xcccccc, side: THREE.DoubleSide, transparent: true, opacity: .5 })
       const wall = new THREE.Mesh(wallGeometry, wallMaterial);
-
+      wall.name = `floorWall ${floorNumber}`
+      if (!walls[floorNumber]) {
+        walls[floorNumber] = [wall]
+      } else {
+        walls[floorNumber].push(wall)
+      }
       return wall
     }
-
+    
+    
     function animate() {
+      window.requestAnimationFrame(animate)
+      
+      raycaster.setFromCamera(mousePosition, camera)
+      const intersects = raycaster.intersectObjects( scene.children );
+      
+      for ( let i = 0; i < intersects.length; i ++ ) {
+        // if some floor is hovered
+        if (intersects[i].object.name.includes('floor')) {
+          // index of hovered floor
+          const activeFloorIndex = +intersects[i].object.name.split(' ')[1];
+
+          walls.forEach((floorWalls, floorIndex) => {
+              floorWalls.forEach(wall => {
+                // if hovered floor
+                if (activeFloorIndex === floorIndex) {
+                  // @ts-ignore
+                  wall.material.color.set( 0xff0000 );
+                } else {
+                  // @ts-ignore
+                  wall.material.color.set( 0xcccccc );
+                }
+              })
+          })
+        } else {
+          // run through all walls and set their color to default color
+          walls.forEach(floorWalls => {
+            floorWalls.forEach(wall => {
+              // @ts-ignore
+              wall.material.color.set( 0xcccccc );
+            })
+          })
+        }
+      }
+
       renderer.render(scene, camera);
     }
-    
-    renderer.setAnimationLoop(animate);
-  }, [])
 
+    animate()
+    // renderer.setAnimationLoop(animate);
+    modelRef.current.appendChild(renderer.domElement)
+  }, [])
+  
   return (
     <div>
       {/* three js canvas */}
