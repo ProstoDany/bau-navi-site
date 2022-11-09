@@ -24,6 +24,7 @@ const ModelPage = () => {
     const ground = new THREE.Mesh(groundGeometry, groundMaterial)
     ground.rotation.x = -0.5 * Math.PI
     ground.position.y = -0.1
+    scene.add(ground)
     
     for (let floorNumber = 0; floorNumber < floors.length; floorNumber++) {
       const floor = createFloor(floorNumber);
@@ -138,7 +139,10 @@ const ModelPage = () => {
       window.requestAnimationFrame(animate)
       
       raycaster.setFromCamera(mousePosition, camera)
-      const intersects = raycaster.intersectObjects( scene.children );
+      // reverse intersects array it is sorted from farrest to nearest,
+      // so loop ends in farrest object. If reverse intersects then loop ends in nearest object.
+      
+      const intersects = raycaster.intersectObjects( scene.children ).reverse();
       
       for ( let i = 0; i < intersects.length; i ++ ) {
         // if some floor is hovered
