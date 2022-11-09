@@ -14,6 +14,7 @@ export interface BuildingModel {
 }
 
 export interface Floor {
+    id: IDType;
     //? floorHeight: number; 
 }
 

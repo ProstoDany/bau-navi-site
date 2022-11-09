@@ -1,0 +1,26 @@
+.model {
+    display: flex;
+
+}
+
+.model__content {
+    width: 80%;
+    height: 100vh;
+}
+
+.model__sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: .6rem;
+    padding: 1rem;
+    flex-grow: 1; 
+    background-color: $gray;
+}
+
+.model__sidebar-btn {
+    border: 0;
+    background-color: $blue-100;
+    color: #fff;
+    font-size: 1rem;
+    padding: .3rem .5rem;
+}
