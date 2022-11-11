@@ -242,7 +242,7 @@ const ModelPage = () => {
                         material.transparent = false
                         child.visible = true
                         gsap.to(material, {
-                          duration: 1,
+                          duration: .25,
                           opacity: 1
                         })
 
@@ -262,7 +262,7 @@ const ModelPage = () => {
                       
                       gsap.to(material, {
                         opacity: 0,
-                        duration: 1
+                        duration: .25
                       }).then(() => child.visible = false)
                     }
                   })
@@ -272,7 +272,7 @@ const ModelPage = () => {
                   y: floorHeight * (currentFloor + 1) + 15,
                   z: shapeCenterPoint[1],
                   x: shapeCenterPoint[0],
-                  duration: .5,
+                  duration: .25,
                   onStart: function() {
                     if (
                       !selectedFloor || 
@@ -302,7 +302,7 @@ const ModelPage = () => {
                 if (child.name.includes('floorWall') || !child.name) {
                   material.transparent = true
                   gsap.to(material, {
-                    duration: 1,
+                    duration: .4,
                     opacity: .5
                   })
                 // if
@@ -310,7 +310,7 @@ const ModelPage = () => {
                   child.visible = true
                   
                   gsap.to(material, {
-                    duration: 1,
+                    duration: .4,
                     opacity: 1
                   }).then(() => {
                     material.transparent = false
