@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { useTypedDispatch, useTypedSelector } from '../hooks/redux';
 import {ConvexGeometry} from 'three/examples/jsm/geometries/ConvexGeometry'
-import { Coordinates2D, Coordinates3D } from '../types';
+import { Coordinates2D, Coordinates3D, Worker } from '../types';
 import { threeInit } from '../three';
 import FloorButton from '../components/FloorButton';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
@@ -11,7 +11,8 @@ import gsap from 'gsap'
 
 const walls: (THREE.Object3D[])[] = [];
 const floorGroups: THREE.Group[] = [];
-const shapeCenterPoint = [3, 3]
+const shapeCenterPoint = [3, 3];
+
 
 let camera: THREE.Camera;
 let scene: THREE.Scene;
@@ -21,7 +22,7 @@ let orbit: OrbitControls;
 
 const ModelPage = () => {
   const modelRef = useRef<HTMLDivElement>(null);
-  const {model, selectedFloor} = useTypedSelector(state => state.buildingModel)
+  const {model, selectedFloor, workers} = useTypedSelector(state => state.buildingModel)
   const dispatch = useTypedDispatch()
 
   useEffect(() => {
@@ -47,6 +48,10 @@ const ModelPage = () => {
     ground.rotation.x = -0.5 * Math.PI
     ground.position.y = -0.1
     scene.add(ground)
+
+    const tileGeometry = new THREE.PlaneGeometry(0.5, 0.5, 10);
+    const tileMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000, opacity: 0, transparent: true, side: THREE.DoubleSide })
+    const tile = new THREE.Mesh(tileGeometry, tileMaterial);
     
     for (let floorNumber = 0; floorNumber < model.floors.length; floorNumber++) {
       const floor = createFloor(floorNumber);
@@ -60,6 +65,16 @@ const ModelPage = () => {
       mousePosition.x = ( event.clientX / modelRef.current.clientWidth ) * 2 - 1;
       mousePosition.y = - ( event.clientY / modelRef.current.clientHeight ) * 2 + 1;
     })
+
+    function createActiveTile(activeCoordinates: Coordinates2D) {
+      const activeTile = tile.clone();
+      activeTile.position.x = activeCoordinates[0] / 2 + 0.25  
+      activeTile.position.y = (activeCoordinates[1] / 2 + 0.25 ) * -1
+      activeTile.position.z = 0.05
+
+      activeTile.material.opacity = .6
+      return activeTile
+    }
     
     function createFloor(floorNumber: number) {
       const floor = new THREE.Group(); 
@@ -74,39 +89,38 @@ const ModelPage = () => {
       
       
       if (floorNumber === model.floors.length - 1) {
-        const ceiling = createFloorGround(false);
+        const ceiling = createFloorGround([]);
         ceiling.position.y = floorHeight
-          ceiling.name = 'floorCeiling ' + floorNumber
+        ceiling.name = 'floorCeiling ' + floorNumber
 
         floor.add(ceiling)
       } 
-      
-      const floorGround = createFloorGround(true)  
+
+      const floorGround = createFloorGround(workers.filter(worker => worker.floor === floorNumber + 1))  
       floorGround.name = 'floorGround ' + floorNumber
+      floor.name = 'floor'
       
       floor.add(floorGround)
-      floor.name = 'floor'
-      // @ts-ignore
       floorGroups.push(floor)
-      // floors.push(floor);
+
       return floor;
     }
  
-    function createFloorGround(createGrid: boolean) {
+    function createFloorGround(workers: Worker[]) {
       const verticies = model.shape.map(coordinates => {
         // multiplicate second coordinate by -1 because shape of floor ceiling is reversed by z axis
         return new THREE.Vector2(coordinates[0] , coordinates[1] * -1)
       })
-
       const groundShape = new THREE.Shape(verticies)
       const groundGeometry = new THREE.ShapeGeometry(groundShape)
       const groundMaterial = new THREE.MeshBasicMaterial({color: 0xffffff, side: THREE.DoubleSide})
       const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-      
 
-      if (createGrid) {
-        
-      }
+      workers.forEach(worker => {
+        const activeTile = createActiveTile(worker.coordinates);
+
+        ground.add(activeTile)
+      })
 
       ground.rotation.x = -0.5 * Math.PI
       return ground
@@ -153,7 +167,7 @@ const ModelPage = () => {
       }
       
       const wallGeometry = new ConvexGeometry(verticies)
-      const wallMaterial = new THREE.MeshBasicMaterial({ color: 0xcccccc, side: THREE.DoubleSide, transparent: true, opacity: .5 })
+      const wallMaterial = new THREE.MeshBasicMaterial({ color: 0xcccccc, side: THREE.DoubleSide, transparent: true, opacity: .5, depthWrite: false })
       const wall = new THREE.Mesh(wallGeometry, wallMaterial);
       wall.name = `floorWall ${floorNumber}`
       if (!walls[floorNumber]) {
@@ -204,7 +218,7 @@ const ModelPage = () => {
       renderer.render(scene, camera);
     }
     animate()
-    // renderer.setAnimationLoop(animate);
+    
     modelRef.current.appendChild(renderer.domElement)
   }, [])
   
@@ -219,47 +233,43 @@ const ModelPage = () => {
               floorIndex={currentFloor} 
               animationHandler={() => {
                 floorGroups.forEach((floor, index) => {
-                  if (index === currentFloor) {
-                    // go trough all floor elements
-                    floor.children.forEach(child => {
+                  // go trough all floor elements
+                  floor.children.forEach(child => {
+                    // @ts-ignore
+                    const {material} = child;
+                    if (index === currentFloor) {
                       if (child.name.includes('floorGround')) {
-                        // @ts-ignore
-                        child.material.transparent = false
-                        // @ts-ignore
-                        gsap.to(child.material, {
+                        material.transparent = false
+                        child.visible = true
+                        gsap.to(material, {
                           duration: 1,
                           opacity: 1
-                        }).then(() => {
-                          
                         })
+
                       // any other objects make invisible
                       } else {
-                        // @ts-ignore
-                        child.material.transparent = true
-                         // @ts-ignore
-                          gsap.to(child.material, {
-                            duration: 0,
-                            opacity: 0
-                          })
+                        material.transparent = true
+                        child.visible = false
+                        gsap.to(material, {
+                          duration: 0,
+                          opacity: 0
+                        })
                       }
-                    })
-                  } else {
-                    // go trough all objects in floor
-                    floor.children.forEach(child => {
-                      // @ts-ignore
-                      child.material.transparent = true
-                      // @ts-ignore
-                      gsap.to(child.material, {
+
+                    } else {
+                      // go trough all objects in floor
+                      material.transparent = true
+                      
+                      gsap.to(material, {
                         opacity: 0,
                         duration: 1
-                      })
-                    })
-                  }
-                })
-
+                      }).then(() => child.visible = false)
+                    }
+                  })
+                  })
+                  
                 gsap.to(camera.position, {
                   y: floorHeight * (currentFloor + 1) + 15,
-                  // model.shape will have property centerPoint (x: centerPoint[0], z: centerPoint[1]);
                   z: shapeCenterPoint[1],
                   x: shapeCenterPoint[0],
                   duration: .5,
@@ -286,23 +296,24 @@ const ModelPage = () => {
             // go to default material values
             floorGroups.forEach(floor => {
               floor.children.forEach(child => {
+                // @ts-ignore
+                const {material} = child;
+                child.visible = true
                 if (child.name.includes('floorWall') || !child.name) {
-                  // @ts-ignore
-                  child.material.transparent = true
-                  // @ts-ignore
-                  gsap.to(child.material, {
+                  material.transparent = true
+                  gsap.to(material, {
                     duration: 1,
                     opacity: .5
                   })
                 // if
                 } else {
-                  // @ts-ignore
-                  gsap.to(child.material, {
+                  child.visible = true
+                  
+                  gsap.to(material, {
                     duration: 1,
                     opacity: 1
                   }).then(() => {
-                    // @ts-ignore
-                    child.material.transparent = false
+                    material.transparent = false
                   })
                 }
               })

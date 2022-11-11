@@ -1,4 +1,4 @@
-import { BuildingModel, IDType, Worker } from './../../types/index';
+import { BuildingModel, IDType, Worker, Coordinate } from './../../types/index';
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 interface ModelInitialState {
@@ -25,10 +25,13 @@ const initialState: ModelInitialState = {
             {id: '12'},
             {id: '13'},
         ],
-        shape: [[0, 0], [0, 6], [6, 6], [6, 0]]
+        shape: [[0, 0], [5, 5], [0, 5]]
     },
     selectedFloor: null,
-    workers: []
+    workers: [
+        {id: '1', coordinates: [5, 5], floor: 13},
+        {id: '2', coordinates: [0, 0], floor: 2}
+    ]
 };
 
 export const modelSlice = createSlice({
