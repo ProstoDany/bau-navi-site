@@ -11,6 +11,7 @@ import gsap from 'gsap'
 
 const walls: (THREE.Object3D[])[] = [];
 const floorGroups: THREE.Group[] = [];
+const shapeCenterPoint = [3, 3]
 
 let camera: THREE.Camera;
 let scene: THREE.Scene;
@@ -96,12 +97,13 @@ const ModelPage = () => {
         // multiplicate second coordinate by -1 because shape of floor ceiling is reversed by z axis
         return new THREE.Vector2(coordinates[0] , coordinates[1] * -1)
       })
-      
+
       const groundShape = new THREE.Shape(verticies)
       const groundGeometry = new THREE.ShapeGeometry(groundShape)
       const groundMaterial = new THREE.MeshBasicMaterial({color: 0xffffff, side: THREE.DoubleSide})
       const ground = new THREE.Mesh(groundGeometry, groundMaterial);
       
+
       if (createGrid) {
         
       }
@@ -176,7 +178,6 @@ const ModelPage = () => {
         if (intersects[i].object.name.includes('floorWall')) {
           // index of hovered floor
           const activeFloorIndex = +intersects[i].object.name.split(' ')[1];
-
           walls.forEach((floorWalls, floorIndex) => {
               floorWalls.forEach(wall => {
                 // if hovered floor
@@ -202,7 +203,6 @@ const ModelPage = () => {
 
       renderer.render(scene, camera);
     }
-
     animate()
     // renderer.setAnimationLoop(animate);
     modelRef.current.appendChild(renderer.domElement)
@@ -222,24 +222,15 @@ const ModelPage = () => {
                   if (index === currentFloor) {
                     // go trough all floor elements
                     floor.children.forEach(child => {
-                      // if object is wall then we make it translucent
-                      if (child.name.includes('floorWall') || !child.name) {
+                      if (child.name.includes('floorGround')) {
                         // @ts-ignore
-                        child.material.transparent = true
-                        // @ts-ignore
-                        gsap.to(child.material, {
-                          duration: 1,
-                          opacity: .5
-                        })
-                      // if object is ground make it visible fully
-                      } else if (child.name.includes('floorGround')) {
+                        child.material.transparent = false
                         // @ts-ignore
                         gsap.to(child.material, {
                           duration: 1,
                           opacity: 1
                         }).then(() => {
-                          // @ts-ignore
-                          child.material.transparent = false
+                          
                         })
                       // any other objects make invisible
                       } else {
@@ -247,7 +238,7 @@ const ModelPage = () => {
                         child.material.transparent = true
                          // @ts-ignore
                           gsap.to(child.material, {
-                            duration: 1,
+                            duration: 0,
                             opacity: 0
                           })
                       }
@@ -267,17 +258,23 @@ const ModelPage = () => {
                 })
 
                 gsap.to(camera.position, {
-                  // y: (currentFloor + 1) * floorHeight + 1, 
-                  y: floorHeight * (currentFloor + 1) + 10,
-                  z: 15,
-                  x: 15,
-                  duration: 1,
-                  onUpdate: function() {
-                    camera.lookAt(0, floorHeight * (currentFloor - 1), 0)
+                  y: floorHeight * (currentFloor + 1) + 15,
+                  // model.shape will have property centerPoint (x: centerPoint[0], z: centerPoint[1]);
+                  z: shapeCenterPoint[1],
+                  x: shapeCenterPoint[0],
+                  duration: .5,
+                  onStart: function() {
+                    if (
+                      !selectedFloor || 
+                      camera.position.z < shapeCenterPoint[1] || 
+                      camera.position.x < shapeCenterPoint[0] || 
+                      camera.position.y > floorHeight * floorGroups.length + 15  || 
+                      camera.position.y < floorHeight * (currentFloor + 1)
+                    ) {
+                      camera.lookAt(shapeCenterPoint[0], floorHeight * (currentFloor - 1000), shapeCenterPoint[1])
+                    }
                   }
                 })
-
-                // gsap.
               }}
             />
           </React.Fragment>
