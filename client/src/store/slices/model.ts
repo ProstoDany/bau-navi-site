@@ -9,36 +9,52 @@ interface ModelInitialState {
 
 const initialState: ModelInitialState = {
     model: {
-        floorHeight: 3,
         floors: [
-            {id: '1'},
-            {id: '2'},
-            {id: '3'},
-            {id: '4'},
-            {id: '5'},
-            {id: '6'},
-            {id: '7'},
-            {id: '8'},
-            {id: '9'},
-            {id: '10'},
-            {id: '11'},
-            {id: '12'},
-            {id: '13'},
+            {id: '1', height: 10, shape: {
+                shapeCenterPoint: [5, 5],
+                points: [
+                    {type: 'straight', coordinate: [0, 0]},
+                    {type: 'straight', coordinate: [0, 6]},
+                    {type: 'straight', coordinate: [6, 6]},
+                    {type: 'circle', coordinate: [8, 8], radius: 6},
+                    {type: 'straight', coordinate: [6, 0]},
+                ]
+            }},
+            {id: '2', height: 5, shape: {
+                shapeCenterPoint: [3, 3],
+                points: [
+                    {type: 'straight', coordinate: [0, 0]},
+                    {type: 'straight', coordinate: [0, 6]},
+                    {type: 'straight', coordinate: [6, 6]},
+                    {type: 'circle', coordinate: [8, 8], radius: 5},
+                    {type: 'straight', coordinate: [6, 0]},
+                ]
+            }},
+            {id: '3', height: 5, shape: {
+                shapeCenterPoint: [3, 3],
+                points: [
+                    {type: 'straight', coordinate: [0, 0]},
+                    {type: 'straight', coordinate: [0, 6]},
+                    {type: 'straight', coordinate: [6, 6]},
+                    {type: 'circle', coordinate: [8, 8], radius: 5},
+                    {type: 'straight', coordinate: [6, 0]},
+                ]
+            }},
+             {id: '4', height: 5, shape: {
+                shapeCenterPoint: [3, 3],
+                points: [
+                    {type: 'straight', coordinate: [0, 0]},
+                    {type: 'straight', coordinate: [0, 6]},
+                    {type: 'straight', coordinate: [6, 6]},
+                    {type: 'circle', coordinate: [8, 8], radius: 5},
+                    {type: 'straight', coordinate: [6, 0]},
+                ]
+            }},
         ],
-        shape: {
-            shapeCenterPoint: [3, 3],
-            points: [
-                {type: 'straight', coordinate: [0, 0]},
-                {type: 'straight', coordinate: [0, 6]},
-                {type: 'straight', coordinate: [6, 6]},
-                {type: 'circle', coordinate: [8, 8], radius: 5},
-                {type: 'straight', coordinate: [6, 0]},
-            ]
-        }
     },
     selectedFloor: null,
     workers: [
-        {id: '1', coordinates: [5, 5], floor: 13},
+        {id: '1', coordinates: [20, 20], floor: 4},
         {id: '2', coordinates: [0, 0], floor: 2}
     ]
 };
@@ -53,14 +69,7 @@ export const modelSlice = createSlice({
         
         deleteModel(state) {
             state.model = {
-                floorHeight: 0,
                 floors: [],
-                shape: {
-                    shapeCenterPoint: [0, 0],
-                    points: [
-                       
-                    ]
-                }
             }
             state.selectedFloor = null;
             state.workers = [];

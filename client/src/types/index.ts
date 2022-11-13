@@ -7,14 +7,13 @@ export type IDType = string;
 // export type BuildingShape = Coordinates2D[]
 
 export interface BuildingModel {
-    shape: BuildingShape;
     floors: Floor[];
-    floorHeight: number;
 }
 
 export interface Floor {
     id: IDType;
-    //? floorHeight: number; 
+    height: number; 
+    shape: Shape;
 }
 
 export interface Worker {
@@ -23,10 +22,9 @@ export interface Worker {
     floor: number;
 }
 
-export interface BuildingShape {
+export interface Shape {
     shapeCenterPoint: Coordinates2D;
     points: ShapePoint[];
-    
 } 
 
 export type ShapePoint = ShapeCirclePoint | ShapeStraightPoint

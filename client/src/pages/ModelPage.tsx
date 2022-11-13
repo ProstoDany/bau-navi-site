@@ -1,24 +1,21 @@
 import React, { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { useTypedDispatch, useTypedSelector } from '../hooks/redux';
-import { Coordinates2D, ShapeCirclePoint, ShapePoint, ShapeStraightPoint, Worker } from '../types';
+import { Coordinates2D, Floor, Shape, ShapeCirclePoint, ShapeStraightPoint, Worker } from '../types';
 import { threeInit } from '../three';
 import FloorButton from '../components/FloorButton';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { modelSlice } from '../store/slices/model';
 import gsap from 'gsap'
 import { createRoundedWall, createStraightWall } from '../three/helpers/wallCreators';
-import { Vector3 } from 'three';
 
-// const walls: (THREE.Object3D[])[] = [];
 const floorGroups: THREE.Group[] = [];
 const shapeCenterPoint = [3, 3];
 
-
+let floors: Floor[] = [];
 let camera: THREE.Camera;
 let scene: THREE.Scene;
 let renderer: THREE.Renderer;
-let floorHeight: number;
 let orbit: OrbitControls;
 
 const ModelPage = () => {
@@ -31,12 +28,11 @@ const ModelPage = () => {
     // console.log(first)
     const threeInitValues = threeInit(modelRef.current.clientWidth, modelRef.current.clientHeight)
 
-    floorHeight = model.floorHeight
     camera = threeInitValues.camera;
     scene = threeInitValues.scene;
     renderer = threeInitValues.renderer;
     orbit = threeInitValues.orbit
-
+    floors = model.floors
     // array of floors with walls
 
     const raycaster = new THREE.Raycaster()
@@ -54,11 +50,12 @@ const ModelPage = () => {
     const tileMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000, opacity: 0, transparent: true, side: THREE.DoubleSide })
     const tile = new THREE.Mesh(tileGeometry, tileMaterial);
     
-    for (let floorNumber = 0; floorNumber < model.floors.length; floorNumber++) {
-      const floor = createFloor(floorNumber);
-      
-      scene.add(floor)
-    }
+
+    model.floors.forEach((floor, floorIndex) => {
+      const floorObject = createFloor(floorIndex, floor);
+
+      scene.add(floorObject)
+    })
   
     window.addEventListener('mousemove', (event) => {
       if (!modelRef.current) return;
@@ -77,24 +74,24 @@ const ModelPage = () => {
       return activeTile
     }
     
-    function createFloor(floorNumber: number) {
-      const floor = new THREE.Group(); 
-      
+    function createFloor(floorIndex: number, floor: Floor) {
+      const floorObject = new THREE.Group(); 
+      const {shape} = floor
       // creating walls
-      model.shape.points.forEach((point, pointIndex) => {
+      shape.points.forEach((point, pointIndex) => {
         let wall: THREE.Object3D | void;
         
         if (point.type === 'circle') {
           const roundedWall = createWall(
             {type: 'circle', coordinate: point.coordinate, radius: point.radius}, 
-            floorHeight,
-            floorNumber
+            floor.height,
+            floorIndex
           )
   
           wall = roundedWall
         } else if (point.type === 'straight') {
           // compute next point
-          const nextPoint = model.shape.points.find((point, straightPointIndex) => {
+          const nextPoint = shape.points.find((point, straightPointIndex) => {
             if (point.type === 'circle') return false;
 
             // if current point has greater index in shape points array then it is next point
@@ -102,46 +99,46 @@ const ModelPage = () => {
             else return false            
           }) || (
             // if didn't find any point find first
-            model.shape.points.find(point => point.type === 'straight')
+            shape.points.find(point => point.type === 'straight')
           )!;
 
           const straightWall = createWall(
             {type: 'straight', end: nextPoint.coordinate, start: point.coordinate},
-            floorHeight, 
-            floorNumber
+            floor.height, 
+            floorIndex
           );
 
           wall = straightWall
         }
 
         if (wall) {
-          floor.add(wall)
+          floorObject.add(wall)
         }
       })
 
-      
-      
-      if (floorNumber === model.floors.length - 1) {
-          const ceiling = createFloorGround([]);
-          ceiling.position.y = floorHeight
-          ceiling.name = 'floorCeiling ' + floorNumber
+          const ceiling = createFloorGround([], shape);
+          ceiling.position.y = floor.height
+          ceiling.name = 'floorCeiling ' + floorIndex
         
-          floor.add(ceiling)
-        } 
+          floorObject.add(ceiling)
+         
         
-        const floorGround = createFloorGround(workers.filter(worker => worker.floor === floorNumber + 1))  
-        floorGround.name = 'floorGround ' + floorNumber
-        floor.name = 'floor'
+        const floorGround = createFloorGround(workers.filter(worker => worker.floor === floorIndex + 1), shape)  
+        floorGround.name = 'floorGround ' + floorIndex
+        floorObject.name = 'floor'
         
-        floor.add(floorGround)
-        floorGroups.push(floor)
-        floor.position.y = floorNumber * floorHeight;
+        floorObject.add(floorGround)
+        floorGroups.push(floorObject)
+
+        floorObject.position.y = model.floors.reduce((acc, floor, reduceIndex) => {
+          return floorIndex > reduceIndex ? acc += floor.height : acc += 0
+        }, 0);
         
-        return floor;
+        return floorObject;
       }
       // createFloorGround([])
-    function createFloorGround(workers: Worker[]) {
-      const straightPointVerticies = model.shape.points
+    function createFloorGround(workers: Worker[], shape: Shape) {
+      const straightPointVerticies = shape.points
       .filter(point => point.type === 'straight')
       .map((point) => new THREE.Vector2(point.coordinate[0], point.coordinate[1] * -1))
       // ^^^ multiplicate second coordinate by -1 because shape of floor ceiling is reversed by z axis
@@ -152,10 +149,10 @@ const ModelPage = () => {
       const ground = new THREE.Mesh(groundGeometry, groundMaterial);
 
       // creating rounded ground
-      model.shape.points.forEach(point => {
+      shape.points.forEach(point => {
         if (point.type === 'straight') return;
         
-        const circleGeometry = new THREE.CircleGeometry(point.radius, 20);
+        const circleGeometry = new THREE.CircleGeometry(point.radius, 50);
         const circleMaterial = new THREE.MeshBasicMaterial({color: 0xffffff, side: THREE.DoubleSide})
         const circle = new THREE.Mesh(circleGeometry, circleMaterial);
         circle.position.set(point.coordinate[0], point.coordinate[1] * -1, 0)
@@ -284,7 +281,7 @@ const ModelPage = () => {
                   })
                   
                 gsap.to(camera.position, {
-                  y: floorHeight * (currentFloor + 1) + 15,
+                  y: 10 * (currentFloor + 1) + 15,
                   z: shapeCenterPoint[1],
                   x: shapeCenterPoint[0],
                   duration: .25,
@@ -293,10 +290,10 @@ const ModelPage = () => {
                       !selectedFloor || 
                       camera.position.z < shapeCenterPoint[1] || 
                       camera.position.x < shapeCenterPoint[0] || 
-                      camera.position.y > floorHeight * floorGroups.length + 15  || 
-                      camera.position.y < floorHeight * (currentFloor + 1)
+                      camera.position.y > floor.height * floorGroups.length + 15  || 
+                      camera.position.y < floor.height * (currentFloor + 1)
                     ) {
-                      camera.lookAt(shapeCenterPoint[0], floorHeight * (currentFloor - 1000), shapeCenterPoint[1])
+                      camera.lookAt(shapeCenterPoint[0], floor.height * (currentFloor - 1000), shapeCenterPoint[1])
                     }
                   }
                 })
