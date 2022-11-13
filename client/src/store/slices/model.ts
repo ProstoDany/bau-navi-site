@@ -1,4 +1,4 @@
-import { BuildingModel, IDType, Worker, Coordinate } from './../../types/index';
+import { BuildingModel, IDType, Worker } from './../../types/index';
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 interface ModelInitialState {
@@ -25,7 +25,16 @@ const initialState: ModelInitialState = {
             {id: '12'},
             {id: '13'},
         ],
-        shape: [[0, 0], [5, 5], [0, 5]]
+        shape: {
+            shapeCenterPoint: [3, 3],
+            points: [
+                {type: 'straight', coordinate: [0, 0]},
+                {type: 'straight', coordinate: [0, 6]},
+                {type: 'straight', coordinate: [6, 6]},
+                {type: 'circle', coordinate: [8, 8], radius: 5},
+                {type: 'straight', coordinate: [6, 0]},
+            ]
+        }
     },
     selectedFloor: null,
     workers: [
@@ -46,7 +55,12 @@ export const modelSlice = createSlice({
             state.model = {
                 floorHeight: 0,
                 floors: [],
-                shape: []
+                shape: {
+                    shapeCenterPoint: [0, 0],
+                    points: [
+                       
+                    ]
+                }
             }
             state.selectedFloor = null;
             state.workers = [];
