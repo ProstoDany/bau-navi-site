@@ -3,9 +3,6 @@ export type Coordinates2D = [Coordinate, Coordinate];
 export type Coordinates3D = [Coordinate, Coordinate, Coordinate];
 export type IDType = string;
 
-
-// export type BuildingShape = Coordinates2D[]
-
 export interface BuildingModel {
     floors: Floor[];
 }
@@ -20,6 +17,7 @@ export interface Worker {
     id: IDType;
     coordinates: Coordinates2D; // tile is an area where worker stands
     floor: number;
+    color: string;
 }
 
 export interface Shape {

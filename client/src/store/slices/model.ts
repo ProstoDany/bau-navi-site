@@ -14,10 +14,10 @@ const initialState: ModelInitialState = {
                 shapeCenterPoint: [5, 5],
                 points: [
                     {type: 'straight', coordinate: [0, 0]},
-                    {type: 'straight', coordinate: [0, 6]},
-                    {type: 'straight', coordinate: [6, 6]},
-                    {type: 'circle', coordinate: [8, 8], radius: 6},
-                    {type: 'straight', coordinate: [6, 0]},
+                    {type: 'straight', coordinate: [0, 7]},
+                    {type: 'straight', coordinate: [7, 7]},
+                    {type: 'circle', coordinate: [7, 7], radius: 6},
+                    {type: 'straight', coordinate: [7, 0]},
                 ]
             }},
             {id: '2', height: 5, shape: {
@@ -26,7 +26,7 @@ const initialState: ModelInitialState = {
                     {type: 'straight', coordinate: [0, 0]},
                     {type: 'straight', coordinate: [0, 6]},
                     {type: 'straight', coordinate: [6, 6]},
-                    {type: 'circle', coordinate: [8, 8], radius: 5},
+                    {type: 'circle', coordinate: [7, 7], radius: 5},
                     {type: 'straight', coordinate: [6, 0]},
                 ]
             }},
@@ -36,7 +36,7 @@ const initialState: ModelInitialState = {
                     {type: 'straight', coordinate: [0, 0]},
                     {type: 'straight', coordinate: [0, 6]},
                     {type: 'straight', coordinate: [6, 6]},
-                    {type: 'circle', coordinate: [8, 8], radius: 5},
+                    {type: 'circle', coordinate: [7, 7], radius: 5},
                     {type: 'straight', coordinate: [6, 0]},
                 ]
             }},
@@ -46,7 +46,7 @@ const initialState: ModelInitialState = {
                     {type: 'straight', coordinate: [0, 0]},
                     {type: 'straight', coordinate: [0, 6]},
                     {type: 'straight', coordinate: [6, 6]},
-                    {type: 'circle', coordinate: [8, 8], radius: 5},
+                    {type: 'circle', coordinate: [7, 7], radius: 5},
                     {type: 'straight', coordinate: [6, 0]},
                 ]
             }},
@@ -54,8 +54,8 @@ const initialState: ModelInitialState = {
     },
     selectedFloor: null,
     workers: [
-        {id: '1', coordinates: [20, 20], floor: 4},
-        {id: '2', coordinates: [0, 0], floor: 2}
+        {id: '2', coordinates: [19, 19], floor: 2, color: 'blue'},
+        {id: '3', coordinates: [0, 0], floor: 3, color: 'red'},
     ]
 };
 

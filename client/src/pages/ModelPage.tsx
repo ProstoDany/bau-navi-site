@@ -46,9 +46,7 @@ const ModelPage = () => {
     ground.position.y = -0.1
     scene.add(ground)
 
-    const tileGeometry = new THREE.PlaneGeometry(0.5, 0.5, 10);
-    const tileMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000, opacity: 0, transparent: true, side: THREE.DoubleSide })
-    const tile = new THREE.Mesh(tileGeometry, tileMaterial);
+    
     
 
     model.floors.forEach((floor, floorIndex) => {
@@ -64,14 +62,18 @@ const ModelPage = () => {
       mousePosition.y = - ( event.clientY / modelRef.current.clientHeight ) * 2 + 1;
     })
 
-    function createActiveTile(activeCoordinates: Coordinates2D) {
-      const activeTile = tile.clone();
-      activeTile.position.x = activeCoordinates[0] / 2 + 0.25  
-      activeTile.position.y = (activeCoordinates[1] / 2 + 0.25 ) * -1
-      activeTile.position.z = 0.05
+    function createtile(worker: Worker) {
+      const tileGeometry = new THREE.PlaneGeometry(0.5, 0.5, 10);
+      const tileMaterial = new THREE.MeshBasicMaterial({ color: worker.color, opacity: 0, transparent: true, side: THREE.DoubleSide })
+      const tile = new THREE.Mesh(tileGeometry, tileMaterial);
 
-      activeTile.material.opacity = .6
-      return activeTile
+      tile.position.x = worker.coordinates[0] / 2 + 0.25  
+      tile.position.y = (worker.coordinates[1] / 2 + 0.25 ) * -1
+      tile.position.z = 0.05
+      
+      tile.material.opacity = .6;
+
+      return tile
     }
     
     function createFloor(floorIndex: number, floor: Floor) {
@@ -161,9 +163,9 @@ const ModelPage = () => {
 
       // adding workers
       workers.forEach(worker => {
-        const activeTile = createActiveTile(worker.coordinates);
+        const tile = createtile(worker);
 
-        ground.add(activeTile)
+        ground.add(tile)
       })
 
       ground.rotation.x = -0.5 * Math.PI
