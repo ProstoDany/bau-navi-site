@@ -10,7 +10,6 @@ import { createFloor } from '../three/helpers/createFloor';
 import { changeGroupOpacity } from '../gsap/changeGroupOpacity';
 
 const floorGroups: THREE.Group[] = [];
-const shapeCenterPoint = [3, 3];
 
 let camera: THREE.Camera;
 let scene: THREE.Scene;
@@ -134,23 +133,14 @@ const ModelPage = () => {
                   
                   changeGroupOpacity(floorGroup, 0)
                 })
-                  
-                  
+              
                 gsap.to(camera.position, {
-                  y: 10 * (currentFloor + 1) + 15,
-                  z: shapeCenterPoint[1],
-                  x: shapeCenterPoint[0],
+                  y: 10 * (currentFloor + 1) + 20,
+                  z: floor.shape.shapeCenterPoint[1],
+                  x: floor.shape.shapeCenterPoint[0],
                   duration: .4,
                   onStart: function() {
-                    if (
-                      !selectedFloor || 
-                      camera.position.z < shapeCenterPoint[1] || 
-                      camera.position.x < shapeCenterPoint[0] || 
-                      camera.position.y > floor.height * floorGroups.length + 15  || 
-                      camera.position.y < floor.height * (currentFloor + 1)
-                    ) {
-                      camera.lookAt(shapeCenterPoint[0], floor.height * (currentFloor - 1000), shapeCenterPoint[1])
-                    }
+                    camera.lookAt(10, -1000, 10)
                   }
                 })
               }}
