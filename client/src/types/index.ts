@@ -17,7 +17,7 @@ export interface Worker {
     id: IDType;
     coordinates: Coordinates2D; // tile is an area where worker stands
     floor: number;
-    color: string;
+    color: string;  
 }
 
 export interface Shape {

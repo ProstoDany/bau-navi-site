@@ -3,8 +3,8 @@ import {ConvexGeometry} from 'three/examples/jsm/geometries/ConvexGeometry'
 import * as THREE from 'three'
 
 export function createRoundedWall(coordinate: Coordinates2D, radius: number, wallHeight: number) {
-    const tubeGeometry = new THREE.CylinderGeometry(radius, radius, wallHeight, 25, 5, true);
-    const tubeMaterial = new THREE.MeshBasicMaterial({color: 0xcccccc, transparent: true, opacity: .8, depthWrite: false});
+    const tubeGeometry = new THREE.CylinderGeometry(radius, radius, wallHeight, 50, 5, true);
+    const tubeMaterial = new THREE.MeshBasicMaterial({color: 0xcccccc, transparent: true, opacity: .4, depthWrite: false});
     const tube = new THREE.Mesh(tubeGeometry, tubeMaterial);
 
     tube.position.set(coordinate[0], wallHeight / 2, coordinate[1]);
@@ -40,7 +40,7 @@ export function createStraightWall(startCoordinate: Coordinates2D, endCoordinate
     }
 
     const wallGeometry = new ConvexGeometry(verticies)
-    const wallMaterial = new THREE.MeshBasicMaterial({ color: 0xcccccc, side: THREE.DoubleSide, transparent: true, opacity: .35, depthWrite: false })
+    const wallMaterial = new THREE.MeshBasicMaterial({ color: 0xcccccc, side: THREE.DoubleSide, transparent: true, opacity: .4, depthWrite: false })
     const wall = new THREE.Mesh(wallGeometry, wallMaterial);
     return wall;
 }

@@ -1,22 +1,20 @@
 import React, { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { useTypedDispatch, useTypedSelector } from '../hooks/redux';
-import { Coordinates2D, Floor, Shape, ShapeCirclePoint, ShapeStraightPoint, Worker } from '../types';
 import { threeInit } from '../three';
 import FloorButton from '../components/FloorButton';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { modelSlice } from '../store/slices/model';
 import gsap from 'gsap'
-import { createRoundedWall, createStraightWall } from '../three/helpers/wallCreators';
+import { createFloor } from '../three/helpers/createFloor';
+import { changeGroupOpacity } from '../gsap/changeGroupOpacity';
 
 const floorGroups: THREE.Group[] = [];
 const shapeCenterPoint = [3, 3];
 
-let floors: Floor[] = [];
 let camera: THREE.Camera;
 let scene: THREE.Scene;
 let renderer: THREE.Renderer;
-let orbit: OrbitControls;
 
 const ModelPage = () => {
   const modelRef = useRef<HTMLDivElement>(null);
@@ -31,27 +29,26 @@ const ModelPage = () => {
     camera = threeInitValues.camera;
     scene = threeInitValues.scene;
     renderer = threeInitValues.renderer;
-    orbit = threeInitValues.orbit
-    floors = model.floors
-    // array of floors with walls
 
     const raycaster = new THREE.Raycaster()
     const mousePosition = new THREE.Vector2();
 
     // ground creation
-    const groundGeometry = new THREE.PlaneGeometry(100, 100);
-    const groundMaterial = new THREE.MeshBasicMaterial({ color: 'gray', side: THREE.DoubleSide })
+    const groundGeometry = new THREE.PlaneGeometry(500, 500);
+    const groundMaterial = new THREE.MeshBasicMaterial({ color: '#777777', side: THREE.DoubleSide })
     const ground = new THREE.Mesh(groundGeometry, groundMaterial)
     ground.rotation.x = -0.5 * Math.PI
     ground.position.y = -0.1
     scene.add(ground)
 
-    
-    
-
     model.floors.forEach((floor, floorIndex) => {
-      const floorObject = createFloor(floorIndex, floor);
+      const yPosition = model.floors.reduce((acc, floor, reduceIndex) => {
+        return floorIndex > reduceIndex ? acc += floor.height : acc += 0
+      }, 0)
+      const floorWorkers = workers.filter(worker => worker.floor === floorIndex + 1);
+      const floorObject = createFloor(floor, floorWorkers, yPosition, floorIndex);
 
+      floorGroups.push(floorObject)
       scene.add(floorObject)
     })
   
@@ -61,137 +58,6 @@ const ModelPage = () => {
       mousePosition.x = ( event.clientX / modelRef.current.clientWidth ) * 2 - 1;
       mousePosition.y = - ( event.clientY / modelRef.current.clientHeight ) * 2 + 1;
     })
-
-    function createtile(worker: Worker) {
-      const tileGeometry = new THREE.PlaneGeometry(0.5, 0.5, 10);
-      const tileMaterial = new THREE.MeshBasicMaterial({ color: worker.color, opacity: 0, transparent: true, side: THREE.DoubleSide })
-      const tile = new THREE.Mesh(tileGeometry, tileMaterial);
-
-      tile.position.x = worker.coordinates[0] / 2 + 0.25  
-      tile.position.y = (worker.coordinates[1] / 2 + 0.25 ) * -1
-      tile.position.z = 0.05
-      
-      tile.material.opacity = .6;
-
-      return tile
-    }
-    
-    function createFloor(floorIndex: number, floor: Floor) {
-      const floorObject = new THREE.Group(); 
-      const {shape} = floor
-      // creating walls
-      shape.points.forEach((point, pointIndex) => {
-        let wall: THREE.Object3D | void;
-        
-        if (point.type === 'circle') {
-          const roundedWall = createWall(
-            {type: 'circle', coordinate: point.coordinate, radius: point.radius}, 
-            floor.height,
-            floorIndex
-          )
-  
-          wall = roundedWall
-        } else if (point.type === 'straight') {
-          // compute next point
-          const nextPoint = shape.points.find((point, straightPointIndex) => {
-            if (point.type === 'circle') return false;
-
-            // if current point has greater index in shape points array then it is next point
-            if (pointIndex < straightPointIndex) {return true}
-            else return false            
-          }) || (
-            // if didn't find any point find first
-            shape.points.find(point => point.type === 'straight')
-          )!;
-
-          const straightWall = createWall(
-            {type: 'straight', end: nextPoint.coordinate, start: point.coordinate},
-            floor.height, 
-            floorIndex
-          );
-
-          wall = straightWall
-        }
-
-        if (wall) {
-          floorObject.add(wall)
-        }
-      })
-
-          const ceiling = createFloorGround([], shape);
-          ceiling.position.y = floor.height
-          ceiling.name = 'floorCeiling ' + floorIndex
-        
-          floorObject.add(ceiling)
-         
-        
-        const floorGround = createFloorGround(workers.filter(worker => worker.floor === floorIndex + 1), shape)  
-        floorGround.name = 'floorGround ' + floorIndex
-        floorObject.name = 'floor'
-        
-        floorObject.add(floorGround)
-        floorGroups.push(floorObject)
-
-        floorObject.position.y = model.floors.reduce((acc, floor, reduceIndex) => {
-          return floorIndex > reduceIndex ? acc += floor.height : acc += 0
-        }, 0);
-        
-        return floorObject;
-      }
-      // createFloorGround([])
-    function createFloorGround(workers: Worker[], shape: Shape) {
-      const straightPointVerticies = shape.points
-      .filter(point => point.type === 'straight')
-      .map((point) => new THREE.Vector2(point.coordinate[0], point.coordinate[1] * -1))
-      // ^^^ multiplicate second coordinate by -1 because shape of floor ceiling is reversed by z axis
-      
-      const groundShape = new THREE.Shape(straightPointVerticies)
-      const groundGeometry = new THREE.ShapeGeometry(groundShape)
-      const groundMaterial = new THREE.MeshBasicMaterial({color: 0xffffff, side: THREE.DoubleSide})
-      const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-
-      // creating rounded ground
-      shape.points.forEach(point => {
-        if (point.type === 'straight') return;
-        
-        const circleGeometry = new THREE.CircleGeometry(point.radius, 50);
-        const circleMaterial = new THREE.MeshBasicMaterial({color: 0xffffff, side: THREE.DoubleSide})
-        const circle = new THREE.Mesh(circleGeometry, circleMaterial);
-        circle.position.set(point.coordinate[0], point.coordinate[1] * -1, 0)
-        ground.add(circle)
-      })
-
-      // adding workers
-      workers.forEach(worker => {
-        const tile = createtile(worker);
-
-        ground.add(tile)
-      })
-
-      ground.rotation.x = -0.5 * Math.PI
-      return ground
-    }
-    
-    function createWall(
-      wall: ShapeCirclePoint | (Omit<ShapeStraightPoint, 'coordinate'> & {start: Coordinates2D; end: Coordinates2D}),
-      wallHeight: number, 
-      floorNumber: number, 
-    ): THREE.Object3D | void {                
-      // create rounded wall
-      if (wall.type === 'circle') {
-        const roundedWall = createRoundedWall(wall.coordinate, wall.radius, wallHeight);
-        roundedWall.name = `floorWall ${floorNumber}`;
-        
-        return roundedWall;
-        // create straight wall
-      } else if (wall.type === 'straight') {
-        const straightWall = createStraightWall(wall.start, wall.end, wallHeight)
-        straightWall.name = `floorWall ${floorNumber}`
-
-        return straightWall;
-      }
-    }
-    
     
     function animate() {
       window.requestAnimationFrame(animate)
@@ -231,6 +97,7 @@ const ModelPage = () => {
 
       renderer.render(scene, camera);
     }
+
     animate()
     
     modelRef.current.appendChild(renderer.domElement)
@@ -246,47 +113,34 @@ const ModelPage = () => {
             <FloorButton 
               floorIndex={currentFloor} 
               animationHandler={() => {
-                floorGroups.forEach((floor, index) => {
-                  // go trough all floor elements
-                  floor.children.forEach(child => {
-                    // @ts-ignore
-                    const {material} = child;
-                    if (index === currentFloor) {
-                      if (child.name.includes('floorGround')) {
-                        material.transparent = false
-                        child.visible = true
-                        gsap.to(material, {
-                          duration: .25,
-                          opacity: 1
-                        })
+                const currentFloorGroup = floorGroups.find(floorGroup => floorGroup.userData.floorIndex === currentFloor);
+                if (!currentFloorGroup) return;
 
-                      // any other objects make invisible
-                      } else {
-                        material.transparent = true
-                        child.visible = false
-                        gsap.to(material, {
-                          duration: 0,
-                          opacity: 0
-                        })
-                      }
+                currentFloorGroup.children.forEach(floorChild => {
+                  let opacity: number = 0;
 
-                    } else {
-                      // go trough all objects in floor
-                      material.transparent = true
-                      
-                      gsap.to(material, {
-                        opacity: 0,
-                        duration: .25
-                      }).then(() => child.visible = false)
-                    }
-                  })
-                  })
+                  switch (floorChild.name) {
+                    case 'ground':
+                      opacity = 1
+                      break
+                  }
+                  
+                  changeGroupOpacity(floorChild, opacity)
+                })
+
+                // hide all other elements
+                floorGroups.forEach((floorGroup) => {
+                  if (floorGroup.userData.floorIndex === currentFloorGroup.userData.floorIndex) return;
+                  
+                  changeGroupOpacity(floorGroup, 0)
+                })
+                  
                   
                 gsap.to(camera.position, {
                   y: 10 * (currentFloor + 1) + 15,
                   z: shapeCenterPoint[1],
                   x: shapeCenterPoint[0],
-                  duration: .25,
+                  duration: .4,
                   onStart: function() {
                     if (
                       !selectedFloor || 
@@ -308,28 +162,24 @@ const ModelPage = () => {
           onClick={() => {
             dispatch(modelSlice.actions.removeSelection())
             // go to default material values
-            floorGroups.forEach(floor => {
-              floor.children.forEach(child => {
-                // @ts-ignore
-                const {material} = child;
-                child.visible = true
-                if (child.name.includes('floorWall') || !child.name) {
-                  material.transparent = true
-                  gsap.to(material, {
-                    duration: .4,
-                    opacity: .5
-                  })
-                // if
-                } else {
-                  child.visible = true
-                  
-                  gsap.to(material, {
-                    duration: .4,
-                    opacity: 1
-                  }).then(() => {
-                    material.transparent = false
-                  })
-                }
+            floorGroups.forEach(floorGroup => {
+              floorGroup.children.forEach(floorChild => {
+                let opacity: number = 0;
+
+                floorChild.visible = true;
+                switch (floorChild.name) {
+                  case 'ground':
+                    opacity = 1
+                    break
+                  case 'wall':
+                    opacity = .4
+                    break
+                  case 'ceiling': 
+                    opacity = 1
+                    break
+                  }
+
+                  changeGroupOpacity(floorChild, opacity)
               })
             })
           }}
