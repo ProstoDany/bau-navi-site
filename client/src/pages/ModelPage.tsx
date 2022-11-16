@@ -1,37 +1,39 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { useTypedDispatch, useTypedSelector } from '../hooks/redux';
 import { threeInit } from '../three';
 import FloorButton from '../components/FloorButton';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { modelSlice } from '../store/slices/model';
 import gsap from 'gsap'
 import { createFloor } from '../three/helpers/createFloor';
 import { changeGroupOpacity } from '../gsap/changeGroupOpacity';
+import {CSS2DObject, CSS2DRenderer} from 'three/examples/jsm/renderers/CSS2DRenderer'
+import { createTileLabel } from '../three/helpers/createTileLabel';
+import { IDType, TileUserData } from '../types';
+import { generateUUID } from 'three/src/math/MathUtils';
+import { getFloorYPosition } from '../three/helpers/getFloorYPosition';
+
 
 const floorGroups: THREE.Group[] = [];
+const tileLabels: {label: HTMLDivElement, divContainer: CSS2DObject, id: IDType}[] = [];
+const tiles: THREE.Object3D[] = [];
 
-let camera: THREE.Camera;
-let scene: THREE.Scene;
-let renderer: THREE.Renderer;
 
 const ModelPage = () => {
   const modelRef = useRef<HTMLDivElement>(null);
   const {model, selectedFloor, workers} = useTypedSelector(state => state.buildingModel)
+  const [globalCamera, setGlobalCamera] = useState<THREE.Camera>();
   const dispatch = useTypedDispatch()
-
+  
   useEffect(() => {
     if(!modelRef.current) return; 
-    // console.log(first)
-    const threeInitValues = threeInit(modelRef.current.clientWidth, modelRef.current.clientHeight)
 
-    camera = threeInitValues.camera;
-    scene = threeInitValues.scene;
-    renderer = threeInitValues.renderer;
-
+    let intersects: THREE.Intersection[] = [];
+    const {camera, renderer, scene} = threeInit(modelRef.current.clientWidth, modelRef.current.clientHeight)
     const raycaster = new THREE.Raycaster()
     const mousePosition = new THREE.Vector2();
-
+    
+    setGlobalCamera(camera);
     // ground creation
     const groundGeometry = new THREE.PlaneGeometry(500, 500);
     const groundMaterial = new THREE.MeshBasicMaterial({ color: '#777777', side: THREE.DoubleSide })
@@ -40,60 +42,63 @@ const ModelPage = () => {
     ground.position.y = -0.1
     scene.add(ground)
 
+    const labelRenderer = new CSS2DRenderer()
+    labelRenderer.setSize(modelRef.current.clientWidth, modelRef.current.clientHeight)
+    labelRenderer.domElement.style.position = 'absolute'
+    labelRenderer.domElement.style.top = '0px'
+    labelRenderer.domElement.style.pointerEvents = 'none'
+    modelRef.current.appendChild(labelRenderer.domElement);
+
+    // creating floors
     model.floors.forEach((floor, floorIndex) => {
-      const yPosition = model.floors.reduce((acc, floor, reduceIndex) => {
-        return floorIndex > reduceIndex ? acc += floor.height : acc += 0
-      }, 0)
+      const yPosition = getFloorYPosition(floorIndex, model.floors);
       const floorWorkers = workers.filter(worker => worker.floor === floorIndex + 1);
-      const floorObject = createFloor(floor, floorWorkers, yPosition, floorIndex);
+      const {floorObject, tiles: floorTiles} = createFloor(floor, floorWorkers, yPosition, floorIndex);
+      tiles.push(...floorTiles)
 
       floorGroups.push(floorObject)
       scene.add(floorObject)
+    });
+
+    tiles.forEach(tile => {
+      const labelId = generateUUID()
+      const {worker, x, z} = tile.userData as TileUserData;
+      const {divContainer, label} = createTileLabel(worker, [x, getFloorYPosition(worker.floor - 1, model.floors) + 1.5, z * -1]);
+
+      tile.userData.labelId = labelId
+      scene.add(divContainer)
+      tileLabels.push({divContainer, label, id: labelId});
     })
   
+
     window.addEventListener('mousemove', (event) => {
       if (!modelRef.current) return;
       
       mousePosition.x = ( event.clientX / modelRef.current.clientWidth ) * 2 - 1;
       mousePosition.y = - ( event.clientY / modelRef.current.clientHeight ) * 2 + 1;
     })
+
+    window.addEventListener('click', () => {
+      camera.updateMatrixWorld();
+      raycaster.setFromCamera(mousePosition, camera)
+      intersects = raycaster.intersectObjects( scene.children )
+
+      if (intersects.length) {
+        intersects.forEach(intersect => {
+          if (intersect.object.name === 'tile') {
+            const {labelId} = intersect.object.userData as TileUserData;
+            const {label} = tileLabels.find(tileLabel => tileLabel.id === labelId)!
+            label.classList.toggle('show')
+          }
+        })
+      }
+    })
     
     function animate() {
       window.requestAnimationFrame(animate)
       
-      raycaster.setFromCamera(mousePosition, camera)
-      // reverse intersects array it is sorted from farrest to nearest,
-      // so loop ends in farrest object. If reverse intersects then loop ends in nearest object.
-      const intersects = raycaster.intersectObjects( scene.children ).reverse();
-      
-      // for ( let i = 0; i < intersects.length; i ++ ) {
-      //   // if some floor is hovered
-      //   if (intersects[i].object.name.includes('floorWall')) {
-      //     // index of hovered floor
-      //     const activeFloorIndex = +intersects[i].object.name.split(' ')[1];
-      //     walls.forEach((floorWalls, floorIndex) => {
-      //         floorWalls.forEach(wall => {
-      //           // if hovered floor
-      //           if (activeFloorIndex === floorIndex) {
-      //             // @ts-ignore
-      //             wall.material.color.set( 0xff0000 );
-      //           } else {
-      //             // @ts-ignore
-      //             wall.material.color.set( 0xcccccc );
-      //           }
-      //         })
-      //     })
-      //   } else {
-      //     // run through all walls and set their color to default color
-      //     walls.forEach(floorWalls => {
-      //       floorWalls.forEach(wall => {
-      //         // @ts-ignore
-      //         wall.material.color.set( 0xcccccc );
-      //       })
-      //     })
-      //   }
-      // }
-
+     
+      labelRenderer.render(scene, camera);
       renderer.render(scene, camera);
     }
 
@@ -130,17 +135,18 @@ const ModelPage = () => {
                 // hide all other elements
                 floorGroups.forEach((floorGroup) => {
                   if (floorGroup.userData.floorIndex === currentFloorGroup.userData.floorIndex) return;
-                  
                   changeGroupOpacity(floorGroup, 0)
                 })
-              
-                gsap.to(camera.position, {
+
+                if (!globalCamera) return;
+                gsap.to(globalCamera.position, {
                   y: 10 * (currentFloor + 1) + 20,
                   z: floor.shape.shapeCenterPoint[1],
                   x: floor.shape.shapeCenterPoint[0],
                   duration: .4,
-                  onStart: function() {
-                    camera.lookAt(10, -1000, 10)
+                  onStart() {
+                    globalCamera.lookAt(10, -500, 10)
+                    globalCamera.updateMatrixWorld()
                   }
                 })
               }}

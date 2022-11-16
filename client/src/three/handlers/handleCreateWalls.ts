@@ -1,4 +1,4 @@
-import { ShapeCirclePoint, ShapeStraightPoint, Floor } from '../../types/index';
+import { ShapeCirclePoint, ShapeStraightPoint, Floor } from '../../types/model';
 import { createRoundedWall, createStraightWall } from "../helpers/wallCreators";
 import {Group} from 'three'
 

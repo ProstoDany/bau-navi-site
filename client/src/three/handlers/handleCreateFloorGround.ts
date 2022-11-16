@@ -1,5 +1,6 @@
-import { Shape, ShapeStraightPoint, Worker } from '../../types/index';
-import { createRoundedGround, createGround, createShapeGround, createTile } from "../helpers/floorGroundCreators";
+import { Worker } from '../../types/index';
+import { Shape, ShapeStraightPoint } from '../../types/model';
+import { createRoundedGround, createGround, createShapeGround } from "../helpers/floorGroundCreators";
 
 export function handleCreateFloorGround(workers: Worker[], shape: Shape) {
     const straightPoints = shape.points
@@ -15,13 +16,6 @@ export function handleCreateFloorGround(workers: Worker[], shape: Shape) {
       const circle = createRoundedGround(point)
       
       ground.add(circle);
-    });
-  
-    // adding worker tiles
-    workers.forEach((worker) => {
-      const tile = createTile(worker);
-  
-      ground.add(tile);
     });
   
     return ground;

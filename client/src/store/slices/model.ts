@@ -1,5 +1,6 @@
-import { BuildingModel, IDType, Worker } from './../../types/index';
+import { IDType, Worker } from './../../types/index';
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { BuildingModel } from '../../types/model';
 
 interface ModelInitialState {
     model: BuildingModel;
@@ -50,12 +51,22 @@ const initialState: ModelInitialState = {
                     {type: 'straight', coordinate: [6, 0]},
                 ]
             }},
+            {id: '5', height: 4, shape: {
+                shapeCenterPoint: [5, 5],
+                points: [
+                    {type: 'straight', coordinate: [0, 0]},
+                    {type: 'straight', coordinate: [0, 7]},
+                    {type: 'straight', coordinate: [7, 7]},
+                    {type: 'circle', coordinate: [7, 7], radius: 6},
+                    {type: 'straight', coordinate: [7, 0]},
+                ]
+            }},
         ],
     },
     selectedFloor: null,
     workers: [
-        {id: '2', coordinates: [19, 19], floor: 2, color: 'blue'},
-        {id: '3', coordinates: [0, 0], floor: 3, color: 'red'},
+        {id: '2', coordinates: [19, 19], floor: 2, tile: {color: 'blue'}, name: 'Anton', age: 17},
+        {id: '3', coordinates: [0, 0], floor: 3, tile: {color: 'red'}, name: 'Oleh', age: 38},
     ]
 };
 

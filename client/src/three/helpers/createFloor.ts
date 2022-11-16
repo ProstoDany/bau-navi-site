@@ -1,9 +1,12 @@
-import { Floor, Worker, Coordinate } from './../../types/index';
+import { Floor } from './../../types/model';
+import { Worker, Coordinate } from './../../types/index';
 import * as THREE from 'three'
 import { handleCreateWalls } from '../handlers/handleCreateWalls';
 import { handleCreateFloorGround } from '../handlers/handleCreateFloorGround';
+import { createTile } from './floorGroundCreators';
 
 export function createFloor(floor: Floor, workers: Worker[], yPosition: Coordinate, floorIndex: number) {
+    const tiles: THREE.Object3D[] = [];
     const floorObject = new THREE.Group(); 
     floorObject.position.y = yPosition
     floorObject.name = 'floor'
@@ -31,5 +34,17 @@ export function createFloor(floor: Floor, workers: Worker[], yPosition: Coordina
     floorObject.add(ceiling)
     floorObject.add(floorGround)
 
-    return floorObject;
+        // adding worker tiles
+    workers.forEach((worker) => {
+        const tile = createTile(worker);
+        tiles.push(tile)
+        floorGround.add(tile);
+    });
+
+    return {
+        floorObject,
+        ceiling,
+        floorGround,
+        tiles
+    };
 }
