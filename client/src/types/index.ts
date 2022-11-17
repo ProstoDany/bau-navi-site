@@ -1,23 +1,38 @@
-import { Object3D } from 'three';
 export type Coordinate = number;
 export type Coordinates2D = [Coordinate, Coordinate];
 export type Coordinates3D = [Coordinate, Coordinate, Coordinate];
 export type IDType = string;
 
-
-export type BuildingShape = Coordinates2D[]
-
-export interface BuildingModel {
-    shape: BuildingShape;
-    floors: Floor[];
-    floorHeight: number;
+export interface TileUserData {
+    x: Coordinate;
+    z: Coordinate;
+    worker: Worker;
+    labelId?: string;
 }
 
-export interface Floor {
-    workers: Worker[];
+export interface Tile {
+    color: string;
 }
 
 export interface Worker {
     id: IDType;
-    tile: Object3D // tile is an area where worker stands
+    coordinates: Coordinates2D;
+    tile: Tile;
+    floor: number;
+    name: string;
+    age: number;
+}
+
+
+
+export interface VDOMTreeElement {
+    elementName: string;
+    name: string;
+    className?: string;
+    children?: VDOMTreeElement[];
+    value?: string
+    HTMLid?: string;
+    type?: string;
+    src?: string;
+    alt?: string;
 }

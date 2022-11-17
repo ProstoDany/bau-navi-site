@@ -1,141 +1,212 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
-import { useTypedSelector } from '../hooks/redux';
-import {ConvexGeometry} from 'three/examples/jsm/geometries/ConvexGeometry'
-import { Coordinates2D, Coordinates3D } from '../types';
-import { getDistance } from '../helpers/getDistance';
-import { camera, renderer, scene } from '../three';
+import { useTypedDispatch, useTypedSelector } from '../hooks/redux';
+import { threeInit } from '../three';
+import FloorButton from '../components/FloorButton';
+import { modelSlice } from '../store/slices/model';
+import gsap from 'gsap'
+import { createFloor } from '../three/helpers/createFloor';
+import { changeGroupOpacity } from '../gsap/changeGroupOpacity';
+import {CSS2DObject, CSS2DRenderer} from 'three/examples/jsm/renderers/CSS2DRenderer'
+import { createTileLabel } from '../three/helpers/createTileLabel';
+import { IDType, TileUserData } from '../types';
+import { generateUUID } from 'three/src/math/MathUtils';
+import { getFloorYPosition } from '../three/helpers/getFloorYPosition';
+import { createHTMLFromVDOM } from '../helpers/createHTMLFromVDOM';
+
+const floorGroups: THREE.Group[] = [];
+export const tileLabels: {label: HTMLDivElement, divContainer: CSS2DObject, id: IDType}[] = [];
+const tiles: THREE.Object3D[] = [];
 
 const ModelPage = () => {
   const modelRef = useRef<HTMLDivElement>(null);
-  const {floorHeight, floors, shape} = useTypedSelector(state => state.buildingModel.model)
+  const {model, selectedFloor, workers} = useTypedSelector(state => state.buildingModel)
+  const [globalCamera, setGlobalCamera] = useState<THREE.Camera>();
+  const dispatch = useTypedDispatch()
   
   useEffect(() => {
     if(!modelRef.current) return; 
-    modelRef.current.appendChild(renderer.domElement)
 
-    let shapePointsDistancesFromCenter: number[] = shape.map(point => getDistance([0, 0], point));
+    let intersects: THREE.Intersection[] = [];
+    const {camera, renderer, scene} = threeInit(modelRef.current.clientWidth, modelRef.current.clientHeight)
+    const raycaster = new THREE.Raycaster()
+    const mousePosition = new THREE.Vector2();
     
+    setGlobalCamera(camera);
     // ground creation
-    const groundGeometry = new THREE.PlaneGeometry(100, 100);
-    const groundMaterial = new THREE.MeshBasicMaterial({ color: 'gray', side: THREE.DoubleSide })
+    const groundGeometry = new THREE.PlaneGeometry(500, 500);
+    const groundMaterial = new THREE.MeshBasicMaterial({ color: '#777777', side: THREE.DoubleSide })
     const ground = new THREE.Mesh(groundGeometry, groundMaterial)
     ground.rotation.x = -0.5 * Math.PI
-    ground.position.y = -0.001
+    ground.position.y = -0.1
     scene.add(ground)
-    
-    
-    for (let floorNumber = 0; floorNumber < floors.length; floorNumber++) {
-      const floor = createFloor(floorNumber);
+
+    const labelRenderer = new CSS2DRenderer()
+    labelRenderer.setSize(modelRef.current.clientWidth, modelRef.current.clientHeight)
+    labelRenderer.domElement.style.position = 'absolute'
+    labelRenderer.domElement.style.top = '0px'
+    labelRenderer.domElement.style.pointerEvents = 'none'
+    modelRef.current.appendChild(labelRenderer.domElement);
+
+    // creating floors
+    model.floors.forEach((floor, floorIndex) => {
+      const yPosition = getFloorYPosition(floorIndex, model.floors);
+      const floorWorkers = workers.filter(worker => worker.floor === floorIndex + 1);
+      const {floorObject, tiles: floorTiles} = createFloor(floor, floorWorkers, yPosition, floorIndex);
+      tiles.push(...floorTiles)
+
+      floorGroups.push(floorObject)
+      scene.add(floorObject)
+    });
+
+    tiles.forEach(tile => {
+      const labelId = generateUUID()
+      const {worker, x, z} = tile.userData as TileUserData;
+      const {divContainer, label} = createTileLabel(worker, [x, getFloorYPosition(worker.floor - 1, model.floors) + 1.5, z * -1]);
+
+      tile.userData.labelId = labelId
+      scene.add(divContainer)
+      tileLabels.push({divContainer, label, id: labelId});
+    })
+  
+
+    window.addEventListener('mousemove', (event) => {
+      if (!modelRef.current) return;
       
-      scene.add(floor)
-    }
-    
-    function createFloor(floorNumber: number) {
-      const floor = new THREE.Object3D(); 
-      
-      floor.position.y = floorNumber * floorHeight;
-      
-      for (let wallNumber = 1; wallNumber <= shape.length; wallNumber++) {
-        const wall = createWall(wallNumber);
-        
-        floor.add(wall)
+      mousePosition.x = ( event.clientX / modelRef.current.clientWidth ) * 2 - 1;
+      mousePosition.y = - ( event.clientY / modelRef.current.clientHeight ) * 2 + 1;
+    })
+
+    window.addEventListener('click', () => {
+      camera.updateMatrixWorld();
+      raycaster.setFromCamera(mousePosition, camera)
+      intersects = raycaster.intersectObjects( scene.children )
+
+      if (intersects.length) {
+        intersects.forEach(intersect => {
+          if (intersect.object.name === 'tile') {
+            const {labelId} = intersect.object.userData as TileUserData;
+            const {label} = tileLabels.find(tileLabel => tileLabel.id === labelId)!
+            label.classList.toggle('show')
+          }
+        })
       }
-      
-      const floorSeparatorGeometry = new THREE.TorusGeometry(Math.max(...shapePointsDistancesFromCenter) + 1, 0.1, 20, 40)
-      const floorSeparatorMaterial = new THREE.MeshBasicMaterial({ color: 0x999999 });
-      const floorSeparator = new THREE.Mesh(floorSeparatorGeometry, floorSeparatorMaterial);
-      
-      floorSeparator.position.y = floorHeight / 3;
-      floorSeparator.rotation.x = -0.5 * Math.PI
-
-      floor.add(floorSeparator)
-
-      if (floorNumber === 0) {
-        const ground = createCeiling();
-        floor.add(ground)
-      } 
-      
-      const ceiling = createCeiling()
-      ceiling.position.y = floorHeight
-      floor.add(ceiling)
-
-      return floor;
-    }
-
-    function createCeiling() {
-      const verticies = shape.map(coordinates => {
-        // multiplicate second coordinate by -1 because shape of floor ceiling is reversed by z axis
-        return new THREE.Vector2(coordinates[0] , coordinates[1] * -1)
-      })
-
-      const ceilingShape = new THREE.Shape(verticies)
-      const ceilingGeometry = new THREE.ShapeGeometry(ceilingShape)
-      const ceilingMaterial = new THREE.MeshBasicMaterial({color: 0xffffff, side: THREE.DoubleSide})
-      const ceiling = new THREE.Mesh(ceilingGeometry, ceilingMaterial);
-
-      ceiling.rotation.x = -0.5 * Math.PI
-      return ceiling
-    }
+    })
     
-    function createWall(wallNumber: number) {  
-      let verticies = []
-      
-      // wall seems to be a rectangle
-      // 4 represents corners of wall
-      for (let wallCorner = 0; wallCorner < 4; wallCorner++) {
-        let coordinates: Coordinates3D;
-        // first coordin
-        let wallXZPlanePoints: [Coordinates2D, Coordinates2D];
-
-        if (shape.length === wallNumber) {
-          wallXZPlanePoints = [shape[wallNumber - 1], shape[0]]
-        } else {
-          wallXZPlanePoints = [shape[wallNumber - 1], shape[wallNumber]]
-        }
-        // bottom left corner
-        if (wallCorner === 0) {
-          coordinates = [wallXZPlanePoints[0][0], 0, wallXZPlanePoints[0][1]]
-        }
-        // top left corner
-        else if (wallCorner === 1) {
-          coordinates = [wallXZPlanePoints[0][0], floorHeight, wallXZPlanePoints[0][1]]
-        }
-
-        // top right corner
-        else if (wallCorner === 2) {
-          coordinates = [wallXZPlanePoints[1][0], floorHeight, wallXZPlanePoints[1][1]]
-        }
-
-        // bottom right corner
-        else if (wallCorner === 3) {
-          coordinates = [wallXZPlanePoints[1][0], 0, wallXZPlanePoints[1][1]]
-        } 
-
-        else {
-          coordinates = [0, 0, 0]
-        }
-        verticies.push(new THREE.Vector3(...coordinates))
-      }
-
-      const wallGeometry = new ConvexGeometry(verticies)
-      const wallMaterial = new THREE.MeshBasicMaterial({ color: 0xcccccc, side: THREE.DoubleSide})
-      const wall = new THREE.Mesh(wallGeometry, wallMaterial);
-
-      return wall
-    }
-
     function animate() {
+      window.requestAnimationFrame(animate)
+      
+     
+      labelRenderer.render(scene, camera);
       renderer.render(scene, camera);
     }
-    
-    renderer.setAnimationLoop(animate);
-  }, [])
 
+    animate()
+    
+    modelRef.current.appendChild(renderer.domElement)
+  }, [])
+  
   return (
-    <div>
+    <div className='model'>
       {/* three js canvas */}
-      <div className="model" ref={modelRef}></div>
+      <div className="model__content" ref={modelRef}></div>
+      <div className='model__sidebar'>
+        {model.floors.map((floor, currentFloor) => (
+          <React.Fragment key={floor.id}>
+            <FloorButton 
+              floorIndex={currentFloor} 
+              animationHandler={() => {
+                const currentFloorGroup = floorGroups.find(floorGroup => floorGroup.userData.floorIndex === currentFloor);
+                if (!currentFloorGroup) return;
+
+                currentFloorGroup.children.forEach(floorChild => {
+                  let opacity: number = 0;
+
+                  switch (floorChild.name) {
+                    case 'ground':
+                      opacity = 1
+                      break
+                  }
+                  
+                  changeGroupOpacity(floorChild, opacity)
+                })
+
+                // hide all other elements
+                floorGroups.forEach((floorGroup) => {
+                  if (floorGroup.userData.floorIndex === currentFloorGroup.userData.floorIndex) return;
+
+                  const tiles = floorGroup.children
+                    .map(groupChild => {
+                      if (groupChild.name !== 'ground') return null;
+                      return groupChild.children.filter(groundChild => groundChild.name === 'tile')
+                    })
+                    .filter(tile => tile)
+                    .flat()
+
+                  tiles.forEach(tile => {
+                    if (!tile) return;
+                    const userData = tile.userData as TileUserData;
+                    const labelObject = tileLabels.find(label => label.id === userData.labelId)
+
+                    if (labelObject) {
+                      labelObject.label.classList.remove('show')
+                    }
+                  })
+
+                  changeGroupOpacity(floorGroup, 0)
+                })
+
+                if (!globalCamera) return;
+                gsap.to(globalCamera.position, {
+                  y: 10 * (currentFloor + 1) + 20,
+                  z: floor.shape.shapeCenterPoint[1],
+                  x: floor.shape.shapeCenterPoint[0],
+                  duration: .4,
+                  onStart() {
+                    globalCamera.lookAt(10, -500, 10)
+                    globalCamera.updateMatrixWorld()
+                  }
+                })
+              }}
+            />
+          </React.Fragment>
+        ))}
+        <button
+          className='model__sidebar-btn'
+          onClick={() => {
+            dispatch(modelSlice.actions.removeSelection())
+            // go to default material values
+            floorGroups.forEach(floorGroup => {
+              floorGroup.children.forEach(floorChild => {
+                let opacity: number = 0;
+
+                floorChild.visible = true;
+                switch (floorChild.name) {
+                  case 'ground':
+                    opacity = 1
+                    break
+                  case 'wall':
+                    opacity = .4
+                    break
+                  case 'ceiling': 
+                    opacity = 1
+                    break
+                  }
+
+                  changeGroupOpacity(floorChild, opacity)
+              })
+            })
+          }}
+        >
+          Show all
+        </button>
+
+        {typeof selectedFloor === 'number' && (
+          <div>
+            Selected floor: {selectedFloor + 1}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
