@@ -13,11 +13,9 @@ import { IDType, TileUserData } from '../types';
 import { generateUUID } from 'three/src/math/MathUtils';
 import { getFloorYPosition } from '../three/helpers/getFloorYPosition';
 
-
 const floorGroups: THREE.Group[] = [];
 const tileLabels: {label: HTMLDivElement, divContainer: CSS2DObject, id: IDType}[] = [];
 const tiles: THREE.Object3D[] = [];
-
 
 const ModelPage = () => {
   const modelRef = useRef<HTMLDivElement>(null);
@@ -135,6 +133,25 @@ const ModelPage = () => {
                 // hide all other elements
                 floorGroups.forEach((floorGroup) => {
                   if (floorGroup.userData.floorIndex === currentFloorGroup.userData.floorIndex) return;
+
+                  const tiles = floorGroup.children
+                    .map(groupChild => {
+                      if (groupChild.name !== 'ground') return null;
+                      return groupChild.children.filter(groundChild => groundChild.name === 'tile')
+                    })
+                    .filter(tile => tile)
+                    .flat()
+
+                  tiles.forEach(tile => {
+                    if (!tile) return;
+                    const userData = tile.userData as TileUserData;
+                    const labelObject = tileLabels.find(label => label.id === userData.labelId)
+
+                    if (labelObject) {
+                      labelObject.label.classList.remove('show')
+                    }
+                  })
+
                   changeGroupOpacity(floorGroup, 0)
                 })
 
