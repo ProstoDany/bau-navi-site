@@ -22,3 +22,17 @@ export interface Worker {
     name: string;
     age: number;
 }
+
+
+
+export interface VDOMTreeElement {
+    elementName: string;
+    name: string;
+    className?: string;
+    children?: VDOMTreeElement[];
+    value?: string
+    HTMLid?: string;
+    type?: string;
+    src?: string;
+    alt?: string;
+}

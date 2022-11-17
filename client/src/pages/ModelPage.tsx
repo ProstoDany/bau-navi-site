@@ -12,9 +12,10 @@ import { createTileLabel } from '../three/helpers/createTileLabel';
 import { IDType, TileUserData } from '../types';
 import { generateUUID } from 'three/src/math/MathUtils';
 import { getFloorYPosition } from '../three/helpers/getFloorYPosition';
+import { createHTMLFromVDOM } from '../helpers/createHTMLFromVDOM';
 
 const floorGroups: THREE.Group[] = [];
-const tileLabels: {label: HTMLDivElement, divContainer: CSS2DObject, id: IDType}[] = [];
+export const tileLabels: {label: HTMLDivElement, divContainer: CSS2DObject, id: IDType}[] = [];
 const tiles: THREE.Object3D[] = [];
 
 const ModelPage = () => {

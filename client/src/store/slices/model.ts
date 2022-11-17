@@ -66,7 +66,7 @@ const initialState: ModelInitialState = {
     selectedFloor: null,
     workers: [
         {id: '1', coordinates: [19, 19], floor: 2, tile: {color: 'blue'}, name: 'Anton', age: 17},
-        {id: '2', coordinates: [19, 19], floor: 2, tile: {color: 'green'}, name: 'Ignat', age: 18},
+        // {id: '2', coordinates: [19, 19], floor: 2, tile: {color: 'green'}, name: 'Ignat', age: 18},
         {id: '3', coordinates: [0, 0], floor: 3, tile: {color: 'red'}, name: 'Oleh', age: 38},
     ]
 };
