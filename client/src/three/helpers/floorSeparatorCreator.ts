@@ -26,15 +26,11 @@ abstract class AbstractFloorSeparatorCreator {
 export class FloorSeparatorCreator extends AbstractFloorSeparatorCreator {
   points: ShapePoint[];
   height: number;
-  straightPoints: ShapeStraightPoint[]; 
-  circlePoints: ShapeCirclePoint[];
 
   constructor(points: ShapePoint[], height: number) {
     super(points, height);
     this.points = points;
     this.height = height;
-    this.straightPoints = points.filter(point => point.type === 'straight') as ShapeStraightPoint[];
-    this.circlePoints = points.filter(point => point.type === 'circle') as ShapeCirclePoint[];
   }
 
   public createCeiling(): FloorSeparator {

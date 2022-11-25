@@ -8,12 +8,15 @@ import * as THREE from 'three'
 abstract class AbstractWallCreator {
   points: ShapePoint[];
   height: number;
-  protected abstract straightPoints: ShapeStraightPoint[];
-  protected abstract circlePoints: ShapeCirclePoint[];
+  protected straightPoints: ShapeStraightPoint[];
+  protected circlePoints: ShapeCirclePoint[];
 
   constructor (points: ShapePoint[], height: number) {
     this.points = points;
     this.height = height;
+
+    this.straightPoints = points.filter(point => point.type === 'straight') as ShapeStraightPoint[];
+    this.circlePoints = points.filter(point => point.type === 'circle') as ShapeCirclePoint[];
   }
 
   public abstract createWalls(): Walls;
@@ -26,15 +29,11 @@ abstract class AbstractWallCreator {
 export class WallCreator extends AbstractWallCreator {
   points: ShapePoint[];
   height: number;
-  protected straightPoints: ShapeStraightPoint[];
-  protected circlePoints: ShapeCirclePoint[];
   
   constructor (points: ShapePoint[], height: number) {
     super(points, height);
     this.points = points;
     this.height = height
-    this.straightPoints = points.filter(point => point.type === 'straight') as ShapeStraightPoint[];
-    this.circlePoints = points.filter(point => point.type === 'circle') as ShapeCirclePoint[];
   }
 
   protected createStraightWall(startCoordinate: Coordinates2D, endCoordinate: Coordinates2D): StraightWall {
