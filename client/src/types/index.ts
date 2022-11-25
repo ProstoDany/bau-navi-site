@@ -1,29 +1,9 @@
+import { CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer";
+
 export type Coordinate = number;
 export type Coordinates2D = [Coordinate, Coordinate];
 export type Coordinates3D = [Coordinate, Coordinate, Coordinate];
 export type IDType = string;
-
-export interface TileUserData {
-    x: Coordinate;
-    z: Coordinate;
-    worker: Worker;
-    labelId?: string;
-}
-
-export interface Tile {
-    color: string;
-}
-
-export interface Worker {
-    id: IDType;
-    coordinates: Coordinates2D;
-    tile: Tile;
-    floor: number;
-    name: string;
-    age: number;
-}
-
-
 
 export interface VDOMTreeElement {
     elementName: string;
@@ -35,4 +15,12 @@ export interface VDOMTreeElement {
     type?: string;
     src?: string;
     alt?: string;
+}
+
+export type VDOMElements = Record<string, HTMLElement> & {root: HTMLElement};
+
+export interface Label {
+    elements: VDOMElements, 
+    CSS2DContainer: CSS2DObject, 
+    id: IDType
 }
