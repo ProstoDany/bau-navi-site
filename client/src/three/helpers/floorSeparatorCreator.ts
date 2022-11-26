@@ -76,6 +76,7 @@ export class FloorSeparatorCreator extends AbstractFloorSeparatorCreator {
       color: 0xffffff,
       side: THREE.DoubleSide,
       transparent: true,
+      depthWrite: false
     });
     const ground = new THREE.Mesh(groundGeometry, groundMaterial);
 
@@ -87,7 +88,8 @@ export class FloorSeparatorCreator extends AbstractFloorSeparatorCreator {
     const circleMaterial = new THREE.MeshBasicMaterial({
       color: 0xffffff,
       side: THREE.DoubleSide,
-      transparent: true
+      transparent: true,
+      depthWrite: false
     });
 
     const circle = new THREE.Mesh(circleGeometry, circleMaterial);
