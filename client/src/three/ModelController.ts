@@ -55,7 +55,7 @@ abstract class AbstractModelController implements IModelController {
     public abstract buildFloor(floor: Floor, yPosition: number): FloorObjects;
     // adds floor to the scene
     public abstract addFloor(floor: THREE.Group): void;
-    protected _initCssRenderer() {
+    private _initCssRenderer() {
         const labelRenderer = new CSS2DRenderer()
         labelRenderer.setSize(this.options.sceneWidth, this.options.sceneHeight)
         labelRenderer.domElement.style.position = 'absolute'
@@ -66,7 +66,7 @@ abstract class AbstractModelController implements IModelController {
         return labelRenderer
     }
 
-    protected _init() {
+    private _init() {
         const renderer = new THREE.WebGLRenderer();
         renderer.setSize(this.options.sceneWidth, this.options.sceneHeight);
         renderer.setPixelRatio(devicePixelRatio)

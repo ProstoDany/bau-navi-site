@@ -26,7 +26,7 @@ abstract class AbstractFloorCreator {
     protected separatorCreator: FloorSeparatorCreator;
 
     constructor(options: FloorCreatorOptions) {
-        this.options = this.getDefaultOptions(options);
+        this.options = this._getDefaultOptions(options);
         this.floor = new THREE.Group();
         this.wallCreator = new WallCreator(
             options.floor.shape.points, 
@@ -42,7 +42,7 @@ abstract class AbstractFloorCreator {
     // Creates tile objects and if withTileLabels is equal to true also creates labels (but do not add them to the scene).
     protected abstract createTiles(): Tile[];
 
-    protected getDefaultOptions(options: FloorCreatorOptions) {    
+    private _getDefaultOptions(options: FloorCreatorOptions) {    
         return {
             ...options,
             withTileLabels: options.withTileLabels ?? defaultOptions.withTileLabels,
@@ -52,13 +52,6 @@ abstract class AbstractFloorCreator {
 }
 
 export class FloorCreator extends AbstractFloorCreator {
-    protected options: FloorCreatorOptions;
-    
-    constructor (options: FloorCreatorOptions) {
-        super(options)
-        this.options = this.getDefaultOptions(options);
-    }
-
     public create(): FloorObjects {
         const ground = this.separatorCreator.createGround();
         const ceiling = this.separatorCreator.createCeiling();
