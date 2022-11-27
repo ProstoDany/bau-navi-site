@@ -1,5 +1,5 @@
 
-import { FloorObjects, BuildingModel, Worker } from '../types/three/index';
+import { FloorObjects, BuildingModel, Worker, RaycasterHandler } from '../types/three/index';
 import { Floor } from "../types/three";
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
@@ -8,15 +8,9 @@ import { FloorCreator } from './helpers/floorCreator';
 import { getFloorYPosition } from './helpers/getFloorYPosition';
 
 interface IModelController {
-    options: ModelControllerOptions;
     model: BuildingModel;
-    ref: React.RefObject<HTMLDivElement>;
-    workers: Worker[];
     floors: FloorObjects[];
-    camera: THREE.Camera;
-    scene: THREE.Scene;
-    renderer: THREE.WebGLRenderer;
-    css2Drenderer: CSS2DRenderer;
+    workers: Worker[];
 }
 
 interface ModelControllerOptions {
@@ -25,16 +19,22 @@ interface ModelControllerOptions {
     fov: number;
 }
 
-abstract class AbstractModelController implements IModelController {
-    options: ModelControllerOptions;
-    model: BuildingModel;
-    ref: React.RefObject<HTMLDivElement>;
-    workers: Worker[];
-    floors: FloorObjects[];
+interface THREEEntities {
     camera: THREE.Camera;
     scene: THREE.Scene;
-    css2Drenderer: CSS2DRenderer;
+    css2DRenderer: CSS2DRenderer;
     renderer: THREE.WebGLRenderer;
+    orbit: OrbitControls;
+}
+
+abstract class AbstractModelController implements IModelController {
+    public workers: Worker[];
+    public floors: FloorObjects[];
+    public model: BuildingModel;
+    protected options: ModelControllerOptions;
+    protected ref: React.RefObject<HTMLDivElement>;
+    public three: THREEEntities;
+    
 
     constructor(model: BuildingModel, workers: Worker[], ref: React.RefObject<HTMLDivElement>, options: ModelControllerOptions) {
         this.model = model;
@@ -42,19 +42,18 @@ abstract class AbstractModelController implements IModelController {
         this.workers = workers
         this.ref = ref;
         this.floors = [];
-
-        const {camera, renderer, scene, css2DRenderer} = this._init();
-        this.camera = camera;
-        this.scene = scene;
-        this.renderer = renderer;
-        this.css2Drenderer = css2DRenderer;
+        this.three = this._init();
     }
 
-    public abstract render(): void;
+    protected abstract render(): void;
+    // protected abstract animate(): void;
     // creates floor
     public abstract buildFloor(floor: Floor, yPosition: number): FloorObjects;
-    // adds floor to the scene
+    // adds floor created floor to the scene
     public abstract addFloor(floor: THREE.Group): void;
+    // sets orbit target on computed point
+    public abstract changeTargetFloor(floorNumber: number): void;
+
     private _initCssRenderer() {
         const labelRenderer = new CSS2DRenderer()
         labelRenderer.setSize(this.options.sceneWidth, this.options.sceneHeight)
@@ -82,10 +81,13 @@ abstract class AbstractModelController implements IModelController {
         camera.position.set(30, 20, 30);
         
         const orbit = new OrbitControls(camera, renderer.domElement);
-        orbit.maxPolarAngle = Math.PI / 2
+        orbit.maxPolarAngle = Math.PI / 2.15
+        orbit.target = new THREE.Vector3(
+            0, 
+            getFloorYPosition(this.model.floors.length - 1, this.model.floors.map(({height}) => height)) / 2, 
+            0)
         orbit.update();
-        
-        
+
         const axesHelper = new THREE.AxesHelper(15);
         scene.add(axesHelper);
 
@@ -106,19 +108,60 @@ abstract class AbstractModelController implements IModelController {
             css2DRenderer
         }
     }
+
+    // function must ne called only once
+    public raycast(
+        listeners: {
+            eventName: keyof WindowEventMap,
+            handler: RaycasterHandler
+        }[]
+    ) {
+        let intersects: THREE.Intersection[] = [];
+        const raycaster = new THREE.Raycaster()
+        const mousePosition = new THREE.Vector2();
+
+        listeners.forEach(({eventName, handler}) => {
+            window.addEventListener(eventName, () => {
+                raycaster.setFromCamera(mousePosition, this.three.camera)
+                intersects = raycaster.intersectObjects(this.three.scene.children)
+
+                handler(intersects);
+            })
+        });
+
+
+        window.addEventListener('mousemove', (event) => {
+            mousePosition.x = ( event.clientX / this.options.sceneWidth ) * 2 - 1;
+            mousePosition.y = - ( event.clientY / this.options.sceneHeight ) * 2 + 1;
+        })  
+    }
 }
 
 export class ModelController extends AbstractModelController {
-    public render(): THREE.Group[] {
+    constructor (model: BuildingModel, workers: Worker[], ref: React.RefObject<HTMLDivElement>, options: ModelControllerOptions) {
+        super(model, workers, ref, options);
+
+        this.render();
+        this.ref.current?.appendChild(this.three.renderer.domElement);
+
+        const animate = () => {
+            window.requestAnimationFrame(animate)
+
+            this.three.css2DRenderer.render(this.three.scene, this.three.camera);
+            this.three.renderer.render(this.three.scene, this.three.camera);
+        }
+        animate();
+    }
+
+    
+
+    protected render(): void {
         const floorHeights = this.model.floors.map(floor => floor.height);
         
-        return this.model.floors.map((floor, index) => {
+        this.model.floors.forEach((floor, index) => {
             const yPosition = getFloorYPosition(index, floorHeights);
             const {floor: floorGroup} = this.buildFloor(floor, yPosition);
-
             this.addFloor(floorGroup);
-
-            return floorGroup;
         })
     }
 
@@ -138,6 +181,21 @@ export class ModelController extends AbstractModelController {
     }
 
     public addFloor(floor: THREE.Group): void {
-        this.scene.add(floor);
+        this.three.scene.add(floor);
+    }
+
+    public changeTargetFloor(floorIndex: number): void {
+        if (this.model.floors[floorIndex]) {
+            const yPosition = getFloorYPosition(
+                floorIndex, 
+                this.model.floors.map(floor => floor.height
+            ));
+    
+            const centerPoints = this.model.floors[floorIndex].shape.shapeCenterPoint;
+                
+            this.three.orbit.target = new THREE.Vector3(centerPoints[0], yPosition, centerPoints[1]);
+        } else {
+            this.three.orbit.target = new THREE.Vector3(0, 0, 0);
+        }
     }
 }

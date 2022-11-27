@@ -35,3 +35,5 @@ export interface FloorObjects {
     walls: Walls;
     tiles: Tile[];
 }
+
+export type RaycasterHandler = (intersects: THREE.Intersection[]) => any;

@@ -7,13 +7,14 @@ import gsap from 'gsap'
 import { changeGroupOpacity } from '../gsap/changeGroupOpacity';
 import { ModelController } from '../three/ModelController';
 import { TileUserData } from '../types/three/tile';
+import { Label } from '../types';
+import { RaycasterHandler } from '../types/three';
 
 
 const ModelPage = () => {
   const modelRef = useRef<HTMLDivElement>(null);
   const {model, selectedFloor, workers} = useTypedSelector(state => state.buildingModel)
   const [modelController, setModelController] = useState<ModelController>();
-  const [globalCamera, setGlobalCamera] = useState<THREE.Camera>();
   const dispatch = useTypedDispatch()
   
   useEffect(() => {
@@ -27,34 +28,14 @@ const ModelPage = () => {
 
     if (!modelController) return setModelController(controller);
 
-    
-    modelController.render();
-    // Getting tile labels from floors object
-    const tileLabels = modelController.floors
-      .map(floor => floor.tiles
-      .map(tile => tile.userData.label))
-      .flat()
-
-    let intersects: THREE.Intersection[] = [];
-    const raycaster = new THREE.Raycaster()
-    const mousePosition = new THREE.Vector2();
-    
-    setGlobalCamera(modelController.camera);
-
-
-    window.addEventListener('mousemove', (event) => {
-      if (!modelRef.current) return;
-      
-      mousePosition.x = ( event.clientX / modelRef.current.clientWidth ) * 2 - 1;
-      mousePosition.y = - ( event.clientY / modelRef.current.clientHeight ) * 2 + 1;
-    })
-
-    window.addEventListener('click', () => {
-      modelController.camera.updateMatrixWorld();
-      raycaster.setFromCamera(mousePosition, modelController.camera)
-      intersects = raycaster.intersectObjects( modelController.scene.children )
-
+    const handleTileClick: RaycasterHandler = (intersects: THREE.Intersection[]) => {
       if (intersects.length) {
+        // Getting tile labels from floors object
+        const tileLabels: Label[] = modelController.floors
+            .map(floor => floor.tiles
+            .map(tile => tile.userData.label))
+            .flat()
+
         intersects.forEach(intersect => {
           if (intersect.object.name === 'tile') {
             // Getting tile label from intersect userData.
@@ -66,18 +47,11 @@ const ModelPage = () => {
           }
         })
       }
-    })
-    
-    const animate = () => {
-      window.requestAnimationFrame(animate)
-      
-      modelController.css2Drenderer.render(modelController.scene, modelController.camera);
-      modelController.renderer.render(modelController.scene, modelController.camera);
     }
 
-    animate()
-    
-    modelRef.current.appendChild(modelController.renderer.domElement)
+    modelController.raycast([
+      {eventName: 'click', handler: handleTileClick}
+    ])
   }, [modelController])
   
   return (
@@ -85,14 +59,14 @@ const ModelPage = () => {
       {/* three js canvas */}
       <div className="model__content" ref={modelRef}></div>
       <div className='model__sidebar'>
-        {model.floors.map((floor, currentFloor) => (
+        {model.floors.map((floor, floorIndex) => (
           <React.Fragment key={floor.id}>
             <FloorButton 
-              floorIndex={currentFloor} 
+              floorIndex={floorIndex} 
               animationHandler={() => {
                 if (!modelController) return;
                 
-                const currentFloorGroup = modelController.floors.find(({floor}) => floor.userData.floorIndex === currentFloor);
+                const currentFloorGroup = modelController.floors.find(({floor}) => floor.userData.floorIndex === floorIndex);
                 if (!currentFloorGroup) return;
 
                 currentFloorGroup.floor.children.forEach((floorChild) => {
@@ -139,17 +113,18 @@ const ModelPage = () => {
                   changeGroupOpacity(floorGroup.floor, 0)
                 })
 
-                if (!globalCamera) return;
-                gsap.to(globalCamera.position, {
-                  y: 10 * (currentFloor + 1) + 20,
+                gsap.to(modelController.three.camera.position, {
+                  y: 10 * (floorIndex + 1) + 20,
                   z: floor.shape.shapeCenterPoint[1],
                   x: floor.shape.shapeCenterPoint[0],
                   duration: .4,
                   onStart() {
-                    globalCamera.lookAt(10, -500, 10)
-                    globalCamera.updateMatrixWorld()
+                    console.log(1)
+                    modelController.three.camera.lookAt(10, -500, 10)
+                    modelController.three.camera.updateMatrixWorld()
                   }
-                })
+                  
+                }).then(() => modelController.changeTargetFloor(floorIndex))
               }}
             />
           </React.Fragment>
@@ -176,7 +151,7 @@ const ModelPage = () => {
                     opacity = 1
                     break
                   }
-
+                  modelController.changeTargetFloor(-1);
                   changeGroupOpacity(floorChild, opacity)
               })
             })
