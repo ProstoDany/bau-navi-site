@@ -9,6 +9,7 @@ import { ModelController } from '../three/ModelController';
 import { TileUserData } from '../types/three/tile';
 import { Label } from '../types';
 import { RaycasterHandler } from '../types/three';
+import { Raycaster } from '../three/Raycaster';
 
 
 const ModelPage = () => {
@@ -19,16 +20,22 @@ const ModelPage = () => {
   
   useEffect(() => {
     if(!modelRef.current) return; 
+    const sceneWidth = modelRef.current.clientWidth;
+    const sceneHeight = modelRef.current.clientHeight;
 
     const controller = new ModelController(model, workers, modelRef, {
       fov: 40,
-      sceneHeight: modelRef.current.clientHeight,
-      sceneWidth: modelRef.current.clientWidth,
+      sceneHeight,
+      sceneWidth
     }) 
 
     if (!modelController) return setModelController(controller);
 
+    const raycaster = new Raycaster(modelController.three.camera, modelController.three.scene.children, sceneWidth, sceneHeight);
+
+    
     const handleTileClick: RaycasterHandler = (intersects: THREE.Intersection[]) => {
+      console.log(intersects)
       if (intersects.length) {
         // Getting tile labels from floors object
         const tileLabels: Label[] = modelController.floors
@@ -48,10 +55,11 @@ const ModelPage = () => {
         })
       }
     }
+    raycaster.addListener('click', handleTileClick)
 
-    modelController.raycast([
-      {eventName: 'click', handler: handleTileClick}
-    ])
+    return () => {
+      raycaster.clearListeners();
+    }
   }, [modelController])
   
   return (

@@ -108,33 +108,6 @@ abstract class AbstractModelController implements IModelController {
             css2DRenderer
         }
     }
-
-    // function must ne called only once
-    public raycast(
-        listeners: {
-            eventName: keyof WindowEventMap,
-            handler: RaycasterHandler
-        }[]
-    ) {
-        let intersects: THREE.Intersection[] = [];
-        const raycaster = new THREE.Raycaster()
-        const mousePosition = new THREE.Vector2();
-
-        listeners.forEach(({eventName, handler}) => {
-            window.addEventListener(eventName, () => {
-                raycaster.setFromCamera(mousePosition, this.three.camera)
-                intersects = raycaster.intersectObjects(this.three.scene.children)
-
-                handler(intersects);
-            })
-        });
-
-
-        window.addEventListener('mousemove', (event) => {
-            mousePosition.x = ( event.clientX / this.options.sceneWidth ) * 2 - 1;
-            mousePosition.y = - ( event.clientY / this.options.sceneHeight ) * 2 + 1;
-        })  
-    }
 }
 
 export class ModelController extends AbstractModelController {
