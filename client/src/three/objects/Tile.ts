@@ -2,6 +2,8 @@ import { LabelData } from "../../types";
 import { TileObject, TileUserData } from '../../types/three/tile';
 import * as THREE from 'three';
 import { Worker } from '../../types/three';
+import { ModelObject } from "./Index";
+import { changeObjectOpacity } from '../../gsap/changeObjectOpacity';
 
 interface ITile {
     object: THREE.Mesh<THREE.PlaneGeometry>;
@@ -9,16 +11,29 @@ interface ITile {
     addLabel: (label: LabelData) => LabelData;
 }
 
-export class Tile implements ITile {
+export class Tile extends ModelObject<TileObject> implements ITile {
     object: THREE.Mesh<THREE.PlaneGeometry>;
     worker: Worker;
     private _label: LabelData | null;
     
     constructor (worker: Worker) {
+        super();
         this.worker = worker;
         
         this._label = null;
         this.object = this.build();
+    }
+
+    hide(duration: number): void {
+        changeObjectOpacity(this.object, 0, duration)
+    }
+
+    show(duration: number): void {
+        changeObjectOpacity(this.object, 1, duration)
+    }
+
+    highlight(color: string): void {
+        
     }
 
     addLabel(label: LabelData): LabelData {
@@ -43,7 +58,6 @@ export class Tile implements ITile {
         const tileGeometry = new THREE.PlaneGeometry(0.5, 0.5, 10);
         const tileMaterial = new THREE.MeshBasicMaterial({
             color: this.worker.tile.color,
-            opacity: .8,
             transparent: true,
             side: THREE.DoubleSide,
         });

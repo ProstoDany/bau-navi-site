@@ -3,6 +3,7 @@ import { IWall, Wall } from "./Wall";
 import * as THREE from 'three';
 import { ConvexGeometry } from 'three/examples/jsm/geometries/ConvexGeometry';
 import { WallObject } from '../../../types/three/walls';
+import { changeObjectOpacity } from '../../../gsap/changeObjectOpacity';
 
 interface IStraightWall extends IWall {
     startCoordinate: Coordinates2D;
@@ -14,6 +15,7 @@ export class StraightWall extends Wall implements IStraightWall {
     startCoordinate: Coordinates2D;
     endCoordinate: Coordinates2D;
     object: WallObject;
+    private _opacity: number;
 
 
     constructor (height: number, width: number, startCoordinate: Coordinates2D, endCoordinate: Coordinates2D) {
@@ -21,6 +23,8 @@ export class StraightWall extends Wall implements IStraightWall {
         this.startCoordinate = startCoordinate;
         this.endCoordinate = endCoordinate;
 
+        this._opacity = .4
+        this.material.opacity = this._opacity
         this.object = this.build();
     }
 
@@ -57,4 +61,16 @@ export class StraightWall extends Wall implements IStraightWall {
 
         return wall;
     }
+
+    hide(duration: number): void {
+        changeObjectOpacity(this.object, 0, duration)
+    }
+
+    show(duration: number): void {
+        changeObjectOpacity(this.object, this._opacity, duration)
+    }
+
+    highlight(color: string): void {
+        
+    }  
 }

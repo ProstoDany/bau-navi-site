@@ -47,8 +47,9 @@ export class ViewEnvironment extends Environment implements IViewEnvironment {
     }
 
     run() {
-        this.floors.forEach(floor => {
+        this.floors.forEach((floor, index) => {
             this.three.scene.add(floor.object);
+            floor.object.userData = {floorIndex: index}
         })
     }
 

@@ -2,21 +2,39 @@ import { ShapeCirclePoint, ShapeStraightPoint } from './../../../types/three/poi
 import { ShapePoint } from "../../../types/three/points";
 import * as THREE from 'three';
 import { CircleFloor, FloorSeparatorObject, StraightShape } from '../../../types/three/separator';
+import { ModelObject } from '../Index';
+import { changeGroupOpacity } from '../../../gsap/changeGroupOpacity';
 
 export interface IFloorSeparator {
     points: ShapePoint[];
 }
 
-export class FloorSeparator implements IFloorSeparator {
+export abstract class FloorSeparator extends ModelObject<FloorSeparatorObject> implements IFloorSeparator {
     points: ShapePoint[];
     private _circlePoints: ShapeCirclePoint[];
     private _straightPoints: ShapeStraightPoint[];
     
     constructor (points: ShapePoint[]) {
+        super();
+
         this.points = points;
         this._straightPoints = points.filter(point => point.type === 'straight') as ShapeStraightPoint[];
         this._circlePoints = points.filter(point => point.type === 'circle') as ShapeCirclePoint[];
+
+        this.object = this.build();
     }
+
+    hide(duration: number): void {
+        changeGroupOpacity(this.object, 0, duration)
+    }
+
+    show(duration: number): void {
+        changeGroupOpacity(this.object, 1, duration)
+    }
+
+    highlight(color: string): void {
+        
+    } 
 
     protected build(): FloorSeparatorObject {
         const separator = new THREE.Group();

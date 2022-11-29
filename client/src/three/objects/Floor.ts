@@ -1,4 +1,3 @@
-import { Label } from './Label';
 import { IDType } from './../../types/index';
 import { FloorOptions, Worker } from "../../types/three";
 import { FloorSeparator } from "./floorSeparator/FloorSeparator";
@@ -13,6 +12,7 @@ import { StraightWall } from "./wall/StraightWall";
 import { RoundedWall } from "./wall/RoundedWall";
 import { Ceiling } from "./floorSeparator/Ceiling";
 import { TileLabel } from '../components/tileLabel';
+import { ModelObject } from './Index';
 
 interface IFloor {
     addWorker: (worker: Worker) => void;
@@ -25,39 +25,57 @@ interface IFloor {
     yPosition: number
 }
 
-export class Floor implements IFloor {
+export class Floor extends ModelObject<THREE.Group> implements IFloor {
     walls: Wall[];
     tiles: Tile[];
+    children: ModelObject<THREE.Object3D>[];
     floorSeparators: FloorSeparator[];
     object: THREE.Group;
     floorOptions: FloorOptions;
-    yPosition: number
+    yPosition: number;
 
     constructor (floorOptions: FloorOptions, yPosition: number) {
+        super();
+
         this.floorOptions = floorOptions;
         this.yPosition = yPosition;
 
+        this.children = [];
         this.walls = [];
         this.tiles = [];
         this.floorSeparators = [];
         this.object = this.build();
     }
 
+    hide(): void {
+        this.children.forEach(child => child.hide(.5))
+    }
+
+    show(): void {
+        this.children.forEach(child => child.show(.5))
+    }
+
+    highlight(color: string): void {
+        
+    }
+    
     
     addWorker(worker: Worker) {
         const tile = new Tile(worker);
         tile.addLabel(TileLabel(worker));
 
         
+        this.children.push(tile);
         this.tiles.push(tile);
         this.object.add(tile.object);
     }
 
-    removeWorker(id: IDType) {
-        const tile = this.tiles.find(tile => tile.worker.id === id);
+    removeWorker(workerId: IDType) {
+        const tile = this.tiles.find(tile => tile.worker.id === workerId);
         
         if (!tile) return;
-        
+
+        this.children = this.children.filter(child => child !== tile);
         this.object.remove(tile.object);
         this.tiles = this.tiles.filter(filterTile => filterTile.worker.id !== tile.worker.id);
     }
@@ -68,7 +86,7 @@ export class Floor implements IFloor {
         this.object.position.y = this.yPosition;
         const wallObjects = this._buildWalls();
         const separators = this._buildSeparators();
-
+        
         [...wallObjects, ...separators].forEach(element => this.object.add(element));
 
         return this.object;
@@ -83,6 +101,7 @@ export class Floor implements IFloor {
             const nextPoint = pointIndex === straightPoints.length - 1 ? straightPoints[0] : straightPoints[pointIndex + 1];
             const straightWall = new StraightWall(this.floorOptions.height, 0, point.coordinate, nextPoint.coordinate);
 
+            this.children.push(straightWall);
             this.walls.push(straightWall);
             wallObjects.push(straightWall.object)
         })
@@ -90,6 +109,7 @@ export class Floor implements IFloor {
         circlePoints.forEach(point => {
             const roundedWall = new RoundedWall(this.floorOptions.height, 0,  point.radius, point.coordinate)
 
+            this.children.push(roundedWall);
             this.walls.push(roundedWall);
             wallObjects.push(roundedWall.object);
         })
@@ -98,10 +118,11 @@ export class Floor implements IFloor {
     }
 
     private _buildSeparators(): FloorSeparatorObject[] {
-
         const ground = new Ground(this.floorOptions.shape.points)
         const ceiling = new Ceiling(this.floorOptions.shape.points, this.floorOptions.height)
     
+        this.children.push(ground, ceiling);
+
         return [ground.object, ceiling.object];
     }
 }
