@@ -1,57 +1,58 @@
-import { LabelData } from "../../types";
 import { TileObject, TileUserData } from '../../types/three/tile';
 import * as THREE from 'three';
 import { Worker } from '../../types/three';
 import { ModelObject } from "./Index";
 import { changeObjectOpacity } from '../../gsap/changeObjectOpacity';
+import { Label } from "./Label";
 
 interface ITile {
     object: THREE.Mesh<THREE.PlaneGeometry>;
     worker: Worker;
-    addLabel: (label: LabelData) => LabelData;
+    addLabel: (label: Label) => void;
 }
 
 export class Tile extends ModelObject<TileObject> implements ITile {
     object: THREE.Mesh<THREE.PlaneGeometry>;
     worker: Worker;
-    private _label: LabelData | null;
+    label?: Label;
     
     constructor (worker: Worker) {
         super();
         this.worker = worker;
         
-        this._label = null;
         this.object = this.build();
     }
 
     hide(duration: number): void {
         changeObjectOpacity(this.object, 0, duration)
+        this.label?.hide();
     }
 
     show(duration: number): void {
         changeObjectOpacity(this.object, 1, duration)
+        this.label?.show();
     }
 
     highlight(color: string): void {
         
     }
 
-    addLabel(label: LabelData): LabelData {
-        if (!this._label) {
-            this._label = label;
+    addLabel(label: Label): Label {
+        if (!this.label) {
+            this.label = label;
             
             if (this.object) {
                 this.object.userData = {
                     ...this.object.userData,
-                    label
+                    label: label.data
                 } as TileUserData
 
-                this.object.add(label.CSS2DContainer);
+                this.object.add(label.data.CSS2DContainer);
             }
 
         }
 
-        return this._label;
+        return label;
     }
 
     protected build(): TileObject {

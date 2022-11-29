@@ -5,17 +5,28 @@ import { LabelData, VDOMTreeElement } from "../../types";
 
 interface ILabel {
     VDOM: VDOMTreeElement;
-    create: () => LabelData;
+    hide: () => void;
+    show: () => void
 }
 
 export class Label implements ILabel {
     VDOM: VDOMTreeElement;
+    data: LabelData
 
     constructor (VDOM: VDOMTreeElement) {
         this.VDOM = VDOM;
+        this.data = this.create();
     }
 
-    create() {
+    hide() {
+        this.data.elements.root.classList.remove('show')
+    }
+
+    show() {
+        this.data.elements.root.classList.add('show')
+    }
+
+    protected create(): LabelData {
         const labelElements = createHTMLFromVDOM(this.VDOM);
         const label = labelElements.root as HTMLDivElement;
         

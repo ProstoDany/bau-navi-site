@@ -1,4 +1,3 @@
-import { LabelData } from "../../types";
 import { Worker } from "../../types/three"
 import { Label } from "../objects/Label";
 
@@ -12,8 +11,8 @@ enum LABEL_ELEMENT_NAMES {
 }
 
 
-export function TileLabel(worker: Worker): LabelData {
-    const {elements, CSS2DContainer, id} = new Label({
+export function TileLabel(worker: Worker): Label {
+    const label = new Label({
         name: LABEL_ELEMENT_NAMES.LABEL,
         elementName: 'div',
         className: 'model__label label',
@@ -53,18 +52,14 @@ export function TileLabel(worker: Worker): LabelData {
                 ]
             }
         ]
-    }).create();
+    })
     // [worker.coordinates[0] / 2, worker.coordinates[1] * -1 / 2, 2]
-    const closeButton = elements[LABEL_ELEMENT_NAMES.LABEL_CLOSE_BTN] as HTMLButtonElement;
-    const root = elements.root as HTMLDivElement;
+    const closeButton = label.data.elements[LABEL_ELEMENT_NAMES.LABEL_CLOSE_BTN] as HTMLButtonElement;
+    const root = label.data.elements.root as HTMLDivElement;
 
     closeButton.addEventListener('click', () => {
         root.classList.remove('show')
     })
 
-    return {
-        CSS2DContainer,
-        elements,
-        id,
-    }
+    return label
 }

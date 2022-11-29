@@ -3,13 +3,9 @@ import * as THREE from 'three'
 import { useTypedDispatch, useTypedSelector } from '../hooks/redux';
 import { modelSlice } from '../store/slices/model';
 import FloorButton from '../components/FloorButton';
-import gsap from 'gsap'
-import { changeGroupOpacity } from '../gsap/changeGroupOpacity';
-import { TileUserData } from '../types/three/tile';
 import { RaycasterHandler } from '../types/three';
 import { Raycaster } from '../three/Raycaster';
 import { ViewEnvironment } from '../three/environment/ViewEnviromentl';
-import { LabelData } from '../types';
 
 
 const ModelPage = () => {
@@ -39,24 +35,22 @@ const ModelPage = () => {
 
     const handleTileClick: RaycasterHandler = (intersects: THREE.Intersection[]) => {
       if (intersects.length) {
-        
-        // Getting tile labels from tile userData
-        const tileLabels: LabelData[] = env.floors
-            .map(floor => floor.tiles
-            .map(tile => tile.object.userData.label))
-            .flat()
-
         intersects.forEach(intersect => {
-          if (intersect.object.name === 'tile') {
-            // Getting tile label from intersect userData.
-            const {label: currentTileLabel} = intersect.object.userData as TileUserData;
-            // Getting root label element.
-            const labelData = tileLabels.find(tileLabel => tileLabel.id === currentTileLabel?.id);
-            
-            if (!labelData) return;
-
-            labelData.elements.root.classList.toggle('show')
-          }
+          if (intersect.object.name !== 'tile') return;
+          // for every tile
+          env.floors.map(floor => floor.tiles)
+            .flat()
+            .forEach(tile => {
+              // checking if intersecting object is tile
+              if (intersect.object === tile.object) {
+                // picking hide or show label
+                if (tile.label?.data.elements.root.classList.contains('show')) {
+                  tile.label?.hide()
+                } else {
+                  tile.label?.show()
+                }
+              }
+          })
         })
       }
     }
