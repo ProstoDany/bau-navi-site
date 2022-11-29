@@ -1,8 +1,8 @@
 import { Coordinates2D, IDType } from './../index';
-import { FloorSeparator } from './separator';
+import { FloorSeparatorObject } from './separator';
 import { ShapePoint } from './points';
-import { Walls } from './walls';
-import { TileOptions, Tile } from './tile';
+import { TileOptions, TileObject } from './tile';
+import { WallObject } from './walls';
 
 export interface Worker {
     id: IDType;
@@ -14,10 +14,10 @@ export interface Worker {
 }
 
 export interface BuildingModel {
-    floors: Floor[];
+    floors: FloorOptions[];
 }
 
-export interface Floor {
+export interface FloorOptions {
     id: IDType;
     height: number; 
     shape: Shape;
@@ -30,10 +30,10 @@ export interface Shape {
 
 export interface FloorObjects {
     floor: THREE.Group;
-    ground: FloorSeparator;
-    ceiling: FloorSeparator;
-    walls: Walls;
-    tiles: Tile[];
+    ground: FloorSeparatorObject;
+    ceiling: FloorSeparatorObject;
+    walls: WallObject[];
+    tiles: TileObject[];
 }
 
 export type RaycasterHandler = (intersects: THREE.Intersection[]) => any;

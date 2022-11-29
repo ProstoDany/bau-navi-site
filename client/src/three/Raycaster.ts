@@ -27,11 +27,12 @@ export class Raycaster implements IRaycaster {
     }[] ;
 
     constructor (camera: THREE.Camera, intersectedObjects: THREE.Object3D[], sceneWidth: number, sceneHeight: number) {
-        this._camera = camera;
-        this._intersectedObjects = intersectedObjects
         this.intersects = [];  
         this.mousePosition = new THREE.Vector3();
         this.raycaster= new THREE.Raycaster();
+        
+        this._camera = camera;
+        this._intersectedObjects = intersectedObjects
         this._activeHandlers = [];
 
         window.addEventListener('mousemove', (event) => {
@@ -41,8 +42,6 @@ export class Raycaster implements IRaycaster {
     }
 
     addListener(eventName: keyof WindowEventMap, handler: RaycasterHandler): IDType {
-        
-    
         const rootHandler = () => {
             this.raycaster.setFromCamera(this.mousePosition, this._camera);
             this.intersects = this.raycaster.intersectObjects(this._intersectedObjects);
@@ -64,11 +63,10 @@ export class Raycaster implements IRaycaster {
 
     removeListener(eventName: keyof WindowEventMap, id: IDType) {
         const activeHandler = this._activeHandlers.find(handler => handler.id === id);
-
-        this._activeHandlers = this._activeHandlers.filter(handler => handler.id !== id);
-
+        
         if (!activeHandler) return;
 
+        this._activeHandlers = this._activeHandlers.filter(handler => handler.id !== id);
         window.removeEventListener(eventName, activeHandler.handler);
     }
 

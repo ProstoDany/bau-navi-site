@@ -1,6 +1,6 @@
 import { IDType } from './../../types/index';
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { BuildingModel, Floor, Worker } from '../../types/three';
+import { BuildingModel, FloorOptions, Worker } from '../../types/three';
 import workers from '../../json/workers.json';
 import floors from '../../json/floors.json';
 
@@ -12,7 +12,7 @@ interface ModelInitialState {
 }
 const initialState: ModelInitialState = {
     model: {
-        floors: floors as Floor[],
+        floors: floors as FloorOptions[],
     },
     selectedFloor: null,
     workers: workers as Worker[],

@@ -19,7 +19,7 @@ export interface VDOMTreeElement {
 
 export type VDOMElements = Record<string, HTMLElement> & {root: HTMLElement};
 
-export interface Label {
+export interface LabelData {
     elements: VDOMElements, 
     CSS2DContainer: CSS2DObject, 
     id: IDType

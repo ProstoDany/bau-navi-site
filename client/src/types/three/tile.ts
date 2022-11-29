@@ -1,16 +1,16 @@
-import { Coordinates2D, Label } from './../index';
+import { Coordinates2D, LabelData } from './../index';
 import {Worker} from './'
 
 export interface TileUserData {
     coordinates: Coordinates2D
-    worker: Worker;
-    label?: Label
+    worker?: Worker;
+    label?: LabelData
 }
 
 export interface TileOptions {
     color: string;
 }
 
-export type Tile = THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>;
+export type TileObject = THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>;
 
 
