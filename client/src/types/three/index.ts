@@ -15,6 +15,7 @@ export interface Worker {
 
 export interface BuildingModel {
     floors: FloorOptions[];
+    centerPoint: Coordinates2D;
 }
 
 export interface FloorOptions {

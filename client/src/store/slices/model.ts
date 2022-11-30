@@ -13,6 +13,7 @@ interface ModelInitialState {
 const initialState: ModelInitialState = {
     model: {
         floors: floors as FloorOptions[],
+        centerPoint: [5, 5]
     },
     selectedFloor: null,
     workers: workers as Worker[],
@@ -29,6 +30,7 @@ export const modelSlice = createSlice({
         deleteModel(state) {
             state.model = {
                 floors: [],
+                centerPoint: [0, 0]
             }
             state.selectedFloor = null;
             state.workers = [];
