@@ -30,7 +30,6 @@ export class Tile extends ModelObject<TileObject> implements ITile {
 
     show(duration: number): void {
         changeObjectOpacity(this.object, 1, duration)
-        this.label?.show();
     }
 
     highlight(color: string): void {
