@@ -17,6 +17,7 @@ import { ModelObject } from './Index';
 interface IFloor {
     addWorker: (worker: Worker) => void;
     removeWorker: (id: IDType) => void;
+    focus: (duration: number) => void;
     walls: Wall[];
     tiles: Tile[];
     floorSeparators: FloorSeparator[];
@@ -47,18 +48,25 @@ export class Floor extends ModelObject<THREE.Group> implements IFloor {
         this.object = this.build();
     }
 
-    hide(): void {
-        this.children.forEach(child => child.hide(.5))
+    hide(duration: number): void {
+        this.children.forEach(child => child.hide(duration))
     }
 
-    show(): void {
-        this.children.forEach(child => child.show(.5))
+    show(duration: number): void {
+        this.children.forEach(child => child.show(duration))
     }
 
     highlight(color: string): void {
-        
+
     }
     
+    focus(duration: number) {
+        this.children.forEach(child => {
+            child instanceof Ground || child instanceof Tile 
+            ? child.show(duration)
+            : child.hide(duration);
+        })
+    };
     
     addWorker(worker: Worker) {
         const tile = new Tile(worker);

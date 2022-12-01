@@ -1,18 +1,20 @@
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+import { Orbit } from './../Orbit';
 import { BuildingModel, Worker } from "../../types/three";
 import { Environment } from "./Environment";
 import * as THREE from 'three';
 import { getFloorYPosition } from "../helpers/getFloorYPosition";
 import { CSS2DRenderer } from "three/examples/jsm/renderers/CSS2DRenderer";
 import { Floor } from "../objects/Floor";
+import gsap from 'gsap'
+import { CameraWrapper } from '../objects/cameras/CameraWrapper';
 
 
 interface THREEViewEnvEntities {
-    camera: THREE.Camera;
+    camera: CameraWrapper;
     scene: THREE.Scene;
     css2DRenderer: CSS2DRenderer;
     renderer: THREE.WebGLRenderer;
-    orbit: OrbitControls;
+    orbit: Orbit;
 }
 
 
@@ -29,7 +31,7 @@ export class ViewEnvironment extends Environment implements IViewEnvironment {
     three: THREEViewEnvEntities;
     floors: Floor[];
 
-    constructor (element: HTMLDivElement, camera: THREE.Camera, model: BuildingModel, workers: Worker[]) {
+    constructor (element: HTMLDivElement, camera: CameraWrapper, model: BuildingModel, workers: Worker[]) {
         super(element, camera);
         this.model = model;
         this.workers = workers;
@@ -40,8 +42,8 @@ export class ViewEnvironment extends Environment implements IViewEnvironment {
         const animate = () => {
             window.requestAnimationFrame(animate)
 
-            this.three.css2DRenderer.render(this.three.scene, this.three.camera);
-            this.three.renderer.render(this.three.scene, this.three.camera);
+            this.three.css2DRenderer.render(this.three.scene, this.three.camera.entity);
+            this.three.renderer.render(this.three.scene, this.three.camera.entity);
         }
         animate();
     }
@@ -53,18 +55,56 @@ export class ViewEnvironment extends Environment implements IViewEnvironment {
         })
     }
 
-    changeTargetFloor(floorIndex: number): void {
+    focusOnFloor(floorIndex: number): void {
+        const focusDuration = 1;
+
         if (this.model.floors[floorIndex]) {
+            const floor = this.model.floors[floorIndex];
             const yPosition = getFloorYPosition(
                 floorIndex, 
                 this.model.floors.map(floor => floor.height
             ));
-    
-            const centerPoints = this.model.floors[floorIndex].shape.shapeCenterPoint;
-                
-            this.three.orbit.target = new THREE.Vector3(centerPoints[0], yPosition, centerPoints[1]);
+            const [x, y, z] = [floor.shape.shapeCenterPoint[0], 10 * (floorIndex + 1) + 20, floor.shape.shapeCenterPoint[1]];
+
+           
+            setTimeout(() => {
+                this.floors.forEach((floor, index) => {
+                    if (index === floorIndex) {
+                      floor.focus(focusDuration)
+                    } else {
+                      floor.hide(focusDuration)
+                    }
+                })
+            }, (focusDuration * 1000) / 2)
+              
+            this.three.camera.goTo(
+                [x, y, z], 
+                focusDuration,
+                () => this.three.orbit.controls.update(),
+                () =>  {
+                    this.three.orbit.focus([x, yPosition, z])
+                    this.three.orbit.controls.update()
+                }
+            )
+
         } else {
-            this.three.orbit.target = new THREE.Vector3(0, 0, 0);
+            this.floors.forEach(floor => {
+                floor.show(focusDuration);
+            })
+
+            this.three.camera.goToStartPosition(
+                focusDuration, 
+                () => this.three.orbit.controls.update(),
+                () =>  {
+                    this.three.orbit.unfocus()
+                    this.three.orbit.controls.update()
+                }
+            )
+
+            setTimeout(() => {
+                this.three.orbit.unfocus()
+                this.three.orbit.controls.update()
+            }, focusDuration * 1000)
         }
     }
 
@@ -97,14 +137,11 @@ export class ViewEnvironment extends Environment implements IViewEnvironment {
     protected init() {
         const {camera, renderer, scene} = super.init();
         
-        const orbit = new OrbitControls(camera, renderer.domElement);
-        orbit.maxPolarAngle = Math.PI / 2.15
-        orbit.target = new THREE.Vector3(
-            0, 
+        const orbit = new Orbit([
+            this.model.centerPoint[0], 
             getFloorYPosition(this.model.floors.length - 1, this.model.floors.map(({height}) => height)) / 2, 
-            0
-        );
-        orbit.update();
+            this.model.centerPoint[1]
+        ], camera.entity, renderer);
 
         const axesHelper = new THREE.AxesHelper(15);
         scene.add(axesHelper);
@@ -117,8 +154,8 @@ export class ViewEnvironment extends Environment implements IViewEnvironment {
             camera,
             scene, 
             renderer,
-            orbit,
-            css2DRenderer
+            css2DRenderer,
+            orbit
         }
     }
 }

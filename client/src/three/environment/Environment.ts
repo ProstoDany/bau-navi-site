@@ -1,20 +1,21 @@
+import { CameraWrapper } from './../objects/cameras/CameraWrapper';
 import { Camera } from "three";
 import * as THREE from 'three';
 import { CSS2DRenderer } from "three/examples/jsm/renderers/CSS2DRenderer";
 
 
 interface IEnvironment {
-    camera: THREE.Camera;
+    camera: CameraWrapper;
     element: HTMLDivElement;
 }
 
 export abstract class Environment implements IEnvironment {
-    camera: Camera;
+    camera: CameraWrapper;
     element: HTMLDivElement;
     protected width: number;
     protected height: number;
 
-    constructor (element: HTMLDivElement, camera: THREE.Camera) {
+    constructor (element: HTMLDivElement, camera: CameraWrapper) {
         this.camera = camera;
         this.element = element;
 

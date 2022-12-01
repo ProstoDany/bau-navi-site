@@ -17,12 +17,23 @@ export class PerspectiveCameraWrapper extends THREE.PerspectiveCamera implements
 
     goTo(coordinates: Coordinates3D, duration: number, onUpdate?: () => void, onEnd?: () => void) {
         const [x, y, z] = coordinates;
-        // console.log(x, y, z)
-        gsap.to(this.entity.position, {
-            x, y, z,
-            duration: duration,
-            onUpdate
-        }).then(onEnd)
+        const timeline = gsap.timeline()
+
+        timeline
+            .to(this.entity.position, {
+                x: this._startPosition[0],
+                y: this._startPosition[1],
+                z: this._startPosition[2],
+                duration: duration,
+                onUpdate
+            }).then(onEnd)
+            
+        timeline
+            .to(this.entity.position, {
+                x, y, z,
+                duration: duration,
+                onUpdate
+            })
     }
 
     goToStartPosition(duration: number, onUpdate?: () => void, onEnd?: () => void) {
