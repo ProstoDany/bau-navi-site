@@ -1,12 +1,5 @@
-import { Coordinates3D, VDOMTreeElement } from '../../types/index';
-import { Worker } from "../../types";
-import {CSS2DObject} from 'three/examples/jsm/renderers/CSS2DRenderer'
-import { createHTMLFromVDOM } from '../../helpers/createHTMLFromVDOM';
-
-interface LabelChildInterface {
-    className: string;
-    key: keyof Worker;
-}
+import { Worker } from "../../types/three"
+import { Label } from "../objects/Label";
 
 enum LABEL_ELEMENT_NAMES {
     LABEL = 'label',
@@ -18,9 +11,8 @@ enum LABEL_ELEMENT_NAMES {
 }
 
 
-
-export function createTileLabel(worker: Worker, coordinates: Coordinates3D) {
-    const labelVDOMTree: VDOMTreeElement = {
+export function TileLabel(worker: Worker): Label {
+    const label = new Label({
         name: LABEL_ELEMENT_NAMES.LABEL,
         elementName: 'div',
         className: 'model__label label',
@@ -60,19 +52,14 @@ export function createTileLabel(worker: Worker, coordinates: Coordinates3D) {
                 ]
             }
         ]
-    }
-    const labelElements = createHTMLFromVDOM(labelVDOMTree)
-    const label = labelElements[LABEL_ELEMENT_NAMES.LABEL] as HTMLDivElement;
-    const closeButton = labelElements[LABEL_ELEMENT_NAMES.LABEL_CLOSE_BTN] as HTMLButtonElement;
+    })
+    // [worker.coordinates[0] / 2, worker.coordinates[1] * -1 / 2, 2]
+    const closeButton = label.data.elements[LABEL_ELEMENT_NAMES.LABEL_CLOSE_BTN] as HTMLButtonElement;
+    const root = label.data.elements.root as HTMLDivElement;
 
     closeButton.addEventListener('click', () => {
-        label.classList.remove('show')
+        root.classList.remove('show')
     })
 
-    const div = document.createElement('div');
-    const divContainer = new CSS2DObject(div);
-    divContainer.position.set(...coordinates);
-    div.append(label)
-
-    return {divContainer, label}
+    return label
 }

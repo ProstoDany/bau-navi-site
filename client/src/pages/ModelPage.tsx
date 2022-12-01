@@ -1,109 +1,65 @@
 import React, { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { useTypedDispatch, useTypedSelector } from '../hooks/redux';
-import { threeInit } from '../three';
-import FloorButton from '../components/FloorButton';
 import { modelSlice } from '../store/slices/model';
-import gsap from 'gsap'
-import { createFloor } from '../three/helpers/createFloor';
-import { changeGroupOpacity } from '../gsap/changeGroupOpacity';
-import {CSS2DObject, CSS2DRenderer} from 'three/examples/jsm/renderers/CSS2DRenderer'
-import { createTileLabel } from '../three/helpers/createTileLabel';
-import { IDType, TileUserData } from '../types';
-import { generateUUID } from 'three/src/math/MathUtils';
-import { getFloorYPosition } from '../three/helpers/getFloorYPosition';
-import { createHTMLFromVDOM } from '../helpers/createHTMLFromVDOM';
+import FloorButton from '../components/FloorButton';
+import { RaycasterHandler } from '../types/three';
+import { Raycaster } from '../three/Raycaster';
+import { ViewEnvironment } from '../three/environment/ViewEnviromentl';
+import { PerspectiveCameraWrapper } from '../three/objects/cameras/PerspectiveCameraWrapper';
 
-const floorGroups: THREE.Group[] = [];
-export const tileLabels: {label: HTMLDivElement, divContainer: CSS2DObject, id: IDType}[] = [];
-const tiles: THREE.Object3D[] = [];
 
 const ModelPage = () => {
   const modelRef = useRef<HTMLDivElement>(null);
   const {model, selectedFloor, workers} = useTypedSelector(state => state.buildingModel)
-  const [globalCamera, setGlobalCamera] = useState<THREE.Camera>();
+  const [env, setEnv] = useState<ViewEnvironment>();
   const dispatch = useTypedDispatch()
   
   useEffect(() => {
     if(!modelRef.current) return; 
+    const sceneWidth = modelRef.current.offsetWidth;
+    const sceneHeight = modelRef.current.offsetHeight;
 
-    let intersects: THREE.Intersection[] = [];
-    const {camera, renderer, scene} = threeInit(modelRef.current.clientWidth, modelRef.current.clientHeight)
-    const raycaster = new THREE.Raycaster()
-    const mousePosition = new THREE.Vector2();
-    
-    setGlobalCamera(camera);
-    // ground creation
-    const groundGeometry = new THREE.PlaneGeometry(500, 500);
-    const groundMaterial = new THREE.MeshBasicMaterial({ color: '#777777', side: THREE.DoubleSide })
-    const ground = new THREE.Mesh(groundGeometry, groundMaterial)
-    ground.rotation.x = -0.5 * Math.PI
-    ground.position.y = -0.1
-    scene.add(ground)
+    const camera = new PerspectiveCameraWrapper(
+      50,
+      sceneWidth / sceneHeight,
+      0.1,
+      1000,
+      [30, 20, 30]
+    );
 
-    const labelRenderer = new CSS2DRenderer()
-    labelRenderer.setSize(modelRef.current.clientWidth, modelRef.current.clientHeight)
-    labelRenderer.domElement.style.position = 'absolute'
-    labelRenderer.domElement.style.top = '0px'
-    labelRenderer.domElement.style.pointerEvents = 'none'
-    modelRef.current.appendChild(labelRenderer.domElement);
+    const env = new ViewEnvironment(modelRef.current, camera, model, workers); 
+    env.run();
+    setEnv(env);
 
-    // creating floors
-    model.floors.forEach((floor, floorIndex) => {
-      const yPosition = getFloorYPosition(floorIndex, model.floors);
-      const floorWorkers = workers.filter(worker => worker.floor === floorIndex + 1);
-      const {floorObject, tiles: floorTiles} = createFloor(floor, floorWorkers, yPosition, floorIndex);
-      tiles.push(...floorTiles)
+    const raycaster = new Raycaster(env.three.camera.entity, env.three.scene.children, sceneWidth, sceneHeight);
 
-      floorGroups.push(floorObject)
-      scene.add(floorObject)
-    });
-
-    tiles.forEach(tile => {
-      const labelId = generateUUID()
-      const {worker, x, z} = tile.userData as TileUserData;
-      const {divContainer, label} = createTileLabel(worker, [x, getFloorYPosition(worker.floor - 1, model.floors) + 1.5, z * -1]);
-
-      tile.userData.labelId = labelId
-      scene.add(divContainer)
-      tileLabels.push({divContainer, label, id: labelId});
-    })
-  
-
-    window.addEventListener('mousemove', (event) => {
-      if (!modelRef.current) return;
-      
-      mousePosition.x = ( event.clientX / modelRef.current.clientWidth ) * 2 - 1;
-      mousePosition.y = - ( event.clientY / modelRef.current.clientHeight ) * 2 + 1;
-    })
-
-    window.addEventListener('click', () => {
-      camera.updateMatrixWorld();
-      raycaster.setFromCamera(mousePosition, camera)
-      intersects = raycaster.intersectObjects( scene.children )
-
+    const handleTileClick: RaycasterHandler = (intersects: THREE.Intersection[]) => {
       if (intersects.length) {
         intersects.forEach(intersect => {
-          if (intersect.object.name === 'tile') {
-            const {labelId} = intersect.object.userData as TileUserData;
-            const {label} = tileLabels.find(tileLabel => tileLabel.id === labelId)!
-            label.classList.toggle('show')
-          }
+          if (intersect.object.name !== 'tile') return;
+          // for every tile
+          env.floors.map(floor => floor.tiles)
+            .flat()
+            .forEach(tile => { 
+              // checking if intersecting object is tile
+              if (intersect.object === tile.object) {
+                // picking hide or show label
+                if (tile.label?.data.elements.root.classList.contains('show')) {
+                  tile.label?.hide()
+                } else {
+                  tile.label?.show()
+                }
+              }
+          })
         })
       }
-    })
-    
-    function animate() {
-      window.requestAnimationFrame(animate)
-      
-     
-      labelRenderer.render(scene, camera);
-      renderer.render(scene, camera);
     }
+    raycaster.addListener('click', handleTileClick)
 
-    animate()
-    
-    modelRef.current.appendChild(renderer.domElement)
+    return () => {
+      raycaster.clearListeners();
+    }
   }, [])
   
   return (
@@ -111,62 +67,14 @@ const ModelPage = () => {
       {/* three js canvas */}
       <div className="model__content" ref={modelRef}></div>
       <div className='model__sidebar'>
-        {model.floors.map((floor, currentFloor) => (
-          <React.Fragment key={floor.id}>
+        {model.floors.map((floorOptions, floorIndex) => (
+          <React.Fragment key={floorOptions.id}>
             <FloorButton 
-              floorIndex={currentFloor} 
+              floorIndex={floorIndex} 
               animationHandler={() => {
-                const currentFloorGroup = floorGroups.find(floorGroup => floorGroup.userData.floorIndex === currentFloor);
-                if (!currentFloorGroup) return;
-
-                currentFloorGroup.children.forEach(floorChild => {
-                  let opacity: number = 0;
-
-                  switch (floorChild.name) {
-                    case 'ground':
-                      opacity = 1
-                      break
-                  }
-                  
-                  changeGroupOpacity(floorChild, opacity)
-                })
-
-                // hide all other elements
-                floorGroups.forEach((floorGroup) => {
-                  if (floorGroup.userData.floorIndex === currentFloorGroup.userData.floorIndex) return;
-
-                  const tiles = floorGroup.children
-                    .map(groupChild => {
-                      if (groupChild.name !== 'ground') return null;
-                      return groupChild.children.filter(groundChild => groundChild.name === 'tile')
-                    })
-                    .filter(tile => tile)
-                    .flat()
-
-                  tiles.forEach(tile => {
-                    if (!tile) return;
-                    const userData = tile.userData as TileUserData;
-                    const labelObject = tileLabels.find(label => label.id === userData.labelId)
-
-                    if (labelObject) {
-                      labelObject.label.classList.remove('show')
-                    }
-                  })
-
-                  changeGroupOpacity(floorGroup, 0)
-                })
-
-                if (!globalCamera) return;
-                gsap.to(globalCamera.position, {
-                  y: 10 * (currentFloor + 1) + 20,
-                  z: floor.shape.shapeCenterPoint[1],
-                  x: floor.shape.shapeCenterPoint[0],
-                  duration: .4,
-                  onStart() {
-                    globalCamera.lookAt(10, -500, 10)
-                    globalCamera.updateMatrixWorld()
-                  }
-                })
+                if (!env) return;
+                
+                env.focusOnFloor(floorIndex)
               }}
             />
           </React.Fragment>
@@ -175,27 +83,9 @@ const ModelPage = () => {
           className='model__sidebar-btn'
           onClick={() => {
             dispatch(modelSlice.actions.removeSelection())
-            // go to default material values
-            floorGroups.forEach(floorGroup => {
-              floorGroup.children.forEach(floorChild => {
-                let opacity: number = 0;
+            if (!env) return;
 
-                floorChild.visible = true;
-                switch (floorChild.name) {
-                  case 'ground':
-                    opacity = 1
-                    break
-                  case 'wall':
-                    opacity = .4
-                    break
-                  case 'ceiling': 
-                    opacity = 1
-                    break
-                  }
-
-                  changeGroupOpacity(floorChild, opacity)
-              })
-            })
+            env.focusOnFloor(-1)          
           }}
         >
           Show all

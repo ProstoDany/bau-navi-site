@@ -1,7 +1,9 @@
-import { VDOMTreeElement } from './../types/index';
+import { VDOMElements, VDOMTreeElement } from './../types/index';
 
-export function createHTMLFromVDOM(tree: VDOMTreeElement) {
-    const elements: Record<string, HTMLElement> = {};
+export function createHTMLFromVDOM(root: VDOMTreeElement) {
+    const elements: VDOMElements = {
+        root: document.createElement('div')
+    };
     
     (function parseVDOMTree(element: VDOMTreeElement) {
         const HTMLElement = document.createElement(element.elementName);
@@ -21,9 +23,14 @@ export function createHTMLFromVDOM(tree: VDOMTreeElement) {
             HTMLElement.textContent = element.value
         }   
         
-        elements[element.name] = HTMLElement
+        // the root element is always with name root
+        if (element === root) {
+            elements.root = HTMLElement
+        } else {
+            elements[element.name] = HTMLElement
+        }
         return HTMLElement
-    })(tree)
+    })(root)
 
     return elements
 }
