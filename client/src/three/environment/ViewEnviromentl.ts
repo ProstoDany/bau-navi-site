@@ -5,8 +5,8 @@ import * as THREE from 'three';
 import { getFloorYPosition } from "../helpers/getFloorYPosition";
 import { CSS2DRenderer } from "three/examples/jsm/renderers/CSS2DRenderer";
 import { Floor } from "../objects/Floor";
-import gsap from 'gsap'
 import { CameraWrapper } from '../objects/cameras/CameraWrapper';
+import { getDistance } from '../../helpers/getDistance';
 
 
 interface THREEViewEnvEntities {
@@ -38,6 +38,26 @@ export class ViewEnvironment extends Environment implements IViewEnvironment {
         
         this.three = this.init();
         this.floors = this.build();
+        const startCoords = this.model.floors[0].shape.points[0].coordinates
+        const endCoords = this.model.floors[0].shape.points[1].coordinates
+        const vector = new THREE.Vector3(
+            (startCoords[1] + endCoords[1]), 
+            0, 
+            (startCoords[0] + endCoords[0]) * -1,
+
+        )
+        const hypotenuse = getDistance(startCoords, [0, 0])
+        const angleSinus = 0
+
+        const constant = angleSinus / hypotenuse;
+        console.log(constant)
+        const circleClipping = new THREE.Plane(
+            vector,
+            constant
+        )
+        this.three.scene.add(new THREE.PlaneHelper(circleClipping, 5));
+
+        this.three.renderer.localClippingEnabled = true;
 
         const animate = () => {
             window.requestAnimationFrame(animate)

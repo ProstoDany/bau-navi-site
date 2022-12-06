@@ -1,37 +1,39 @@
-import { Coordinates2D } from './../../../types/index';
+import { ShapeCirclePoint, ShapePoint } from './../../../types/three/points';
 import { IWall, Wall } from "./Wall";
 import * as THREE from 'three';
 import { WallObject } from '../../../types/three/walls';
 import { changeObjectOpacity } from '../../../gsap/changeObjectOpacity';
+import { getThetaLength } from '../../helpers/getThetaLength';
+import { getThetaCenter } from '../../helpers/getThetaCenter';
+import { getThetaStart } from '../../helpers/getThetaStart';
 
 interface IRoundedWall extends IWall {
-    centerCoordinates: Coordinates2D;
-    object: WallObject;
-    radius: number;
+    point: ShapeCirclePoint;
 }
 
 export class RoundedWall extends Wall implements IRoundedWall {
-    centerCoordinates: Coordinates2D;
-    radius: number;
     object: WallObject;
+    point: ShapeCirclePoint;
     private _opacity: number;
 
-    constructor (height: number, width: number, radius: number, centerCoordinates: Coordinates2D) {
-        super(height, width)
+    constructor (height: number, width: number, radius: number, point: ShapeCirclePoint, nextPoint: ShapePoint) {
+        super(height, width, point, nextPoint)
 
-        this.radius = radius;
-        this.centerCoordinates = centerCoordinates;
-
+        this.point = point
         this._opacity = .7;
         this.material.opacity = this._opacity
         this.object = this.build()
     }
 
     protected build() {
-        const cylinderGeometry = new THREE.CylinderGeometry(this.radius, this.radius, this.height, 50, 5, true);
+        const thetaLength = getThetaLength(this.point.coordinates, this.nextPoint.coordinates, this.point.radius);
+        const thetaStart = getThetaStart(this.point.coordinates, this.nextPoint.coordinates, this.point.radius, this.point.isConvex);
+        const thetaCenter = getThetaCenter(this.point.coordinates, this.nextPoint.coordinates, this.point.radius, this.point.radius, this.point.isConvex);
+        
+        const cylinderGeometry = new THREE.CylinderGeometry(this.point.radius, this.point.radius, this.height, 50, 5, true, thetaStart, thetaLength);
         const cylinder = new THREE.Mesh(cylinderGeometry, this.material);
 
-        cylinder.position.set(this.centerCoordinates[0], this.height / 2, this.centerCoordinates[1]);
+        cylinder.position.set(thetaCenter[0], this.height / 2, thetaCenter[1]);
         cylinder.name = 'wall';
 
         return cylinder;

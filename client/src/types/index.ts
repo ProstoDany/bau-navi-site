@@ -4,6 +4,7 @@ export type Coordinate = number;
 export type Coordinates2D = [Coordinate, Coordinate];
 export type Coordinates3D = [Coordinate, Coordinate, Coordinate];
 export type IDType = string;
+export type Radian = number;
 
 export interface VDOMTreeElement {
     elementName: string;

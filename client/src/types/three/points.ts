@@ -4,11 +4,12 @@ export type ShapePoint = ShapeCirclePoint | ShapeStraightPoint
 
 export interface ShapeCirclePoint {
     type: 'circle',
-    coordinate: Coordinates2D,
+    coordinates: Coordinates2D;
+    isConvex: boolean;
     radius: number;
 }
 
 export interface ShapeStraightPoint {
     type: 'straight',
-    coordinate: Coordinates2D,
+    coordinates: Coordinates2D,
 }

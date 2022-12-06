@@ -1,10 +1,10 @@
 import * as THREE from 'three';
 
 export abstract class ModelObject<ObjectType> {
-    object: THREE.Object3D;
+    object: ObjectType;
 
     constructor () {
-        this.object = new THREE.Group();
+        this.object = new THREE.Group() as ObjectType;
     }
 
     protected abstract build(): ObjectType;
