@@ -12,7 +12,7 @@ interface ITile {
 }
 
 export class Tile extends ModelObject<TileObject> implements ITile {
-    object: THREE.Mesh<THREE.PlaneGeometry>;
+    object: TileObject;
     worker: Worker;
     label?: Label;
     

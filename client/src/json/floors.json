@@ -2,42 +2,8 @@
     {"id": "1", "height": 10, "shape": {
         "shapeCenterPoint": [5, 5],
         "points": [
-            {"type": "straight", "coordinate": [0, 0]},
-            {"type": "straight", "coordinate": [0, 7]},
-            {"type": "straight", "coordinate": [7, 7]},
-            {"type": "circle", "coordinate": [7, 7], "radius": 6},
-            {"type": "straight", "coordinate": [7, 0]}
-        ]
-    }},
-    {"id": "2", "height": 5, "shape": {
-        "shapeCenterPoint": [3, 3],
-        "points": [
-            {"type": "straight", "coordinate": [0, 0]},
-            {"type": "straight", "coordinate": [0, 6]},
-            {"type": "straight", "coordinate": [6, 6]},
-            {"type": "circle", "coordinate": [7, 7], "radius": 5},
-            {"type": "straight", "coordinate": [6, 0]}
-        ]
-    }},
-    {"id": "3", "height": 5, "shape": {
-        "shapeCenterPoint": [3, 3],
-        "points": [
-            {"type": "straight", "coordinate": [0, 0]},
-            {"type": "straight", "coordinate": [0, 6]},
-            {"type": "straight", "coordinate": [6, 6]},
-            {"type": "circle", "coordinate": [7, 7], "radius": 5},
-            {"type": "straight", "coordinate": [6, 0]}
-        ]
-    }},
-     {"id": "4", "height": 5, "shape": {
-        "shapeCenterPoint": [3, 3],
-        "points": [
-            {"type": "straight", "coordinate": [0, 0]},
-            {"type": "straight", "coordinate": [0, 6]},
-            {"type": "straight", "coordinate": [6, 6]},
-            {"type": "circle", "coordinate": [7, 7], "radius": 5},
-            {"type": "straight", "coordinate": [6, 0]}
+            {"type": "circle", "coordinates": [8, 20], "radius": 8, "isConvex": true},
+            {"type": "straight", "coordinates": [3, 10]}
         ]
     }}
-    
 ]

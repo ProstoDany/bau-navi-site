@@ -7,7 +7,6 @@ import * as THREE from 'three';
 import { WallObject } from "../../types/three/walls";
 import { FloorSeparatorObject } from "../../types/three/separator";
 import { Ground } from "./floorSeparator/Ground";
-import { ShapeCirclePoint, ShapeStraightPoint } from "../../types/three/points";
 import { StraightWall } from "./wall/StraightWall";
 import { RoundedWall } from "./wall/RoundedWall";
 import { Ceiling } from "./floorSeparator/Ceiling";
@@ -101,25 +100,20 @@ export class Floor extends ModelObject<THREE.Group> implements IFloor {
     }
     
     private _buildWalls(): WallObject[] {
-        const straightPoints = this.floorOptions.shape.points.filter(point => point.type === 'straight') as ShapeStraightPoint[];
-        const circlePoints = this.floorOptions.shape.points.filter(point => point.type === 'circle') as ShapeCirclePoint[];
-        const wallObjects: WallObject[] = []; 
+        const wallObjects: WallObject[] = this.floorOptions.shape.points.map((point, index) => {
+            const nextPoint = this.floorOptions.shape.points[index + 1] || this.floorOptions.shape.points[0];
+            let wall: Wall;
 
-        straightPoints.forEach((point, pointIndex) => {
-            const nextPoint = pointIndex === straightPoints.length - 1 ? straightPoints[0] : straightPoints[pointIndex + 1];
-            const straightWall = new StraightWall(this.floorOptions.height, 0, point.coordinate, nextPoint.coordinate);
+            if (point.type === 'straight') {
+                wall = new StraightWall(this.floorOptions.height, 0, point, nextPoint);
+            } else {
+                wall = new RoundedWall(this.floorOptions.height, 0, point.radius, point, nextPoint);
+            }
 
-            this.children.push(straightWall);
-            this.walls.push(straightWall);
-            wallObjects.push(straightWall.object)
-        })
+            this.walls.push(wall);
+            this.children.push(wall);
 
-        circlePoints.forEach(point => {
-            const roundedWall = new RoundedWall(this.floorOptions.height, 0,  point.radius, point.coordinate)
-
-            this.children.push(roundedWall);
-            this.walls.push(roundedWall);
-            wallObjects.push(roundedWall.object);
+            return wall.object;
         })
 
         return wallObjects;
